@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint" :"standard",
-    "lint-fix" :"standard --fix"
+    "lint": "standard",
+    "lint-fix": "standard --fix"
   },
   "repository": {
     "type": "git",
@@ -17,5 +17,13 @@
   "bugs": {
     "url": "https://github.com/samuel005005/platziverse/issues"
   },
-  "homepage": "https://github.com/samuel005005/platziverse#readme"
+  "homepage": "https://github.com/samuel005005/platziverse#readme",
+  "dependencies": {
+    "pg": "^8.7.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.21.3"
+  },
+  "devDependencies": {
+    "standard": "^17.0.0"
+  }
 }
