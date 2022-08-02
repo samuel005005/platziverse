@@ -1,0 +1,19 @@
+{
+  "name": "platziverse-db",
+  "version": "1.0.0",
+  "description": "A simpe IoT Platform - DB Module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samuel005005/platziverse.git"
+  },
+  "author": "Samuel Paez",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/samuel005005/platziverse/issues"
+  },
+  "homepage": "https://github.com/samuel005005/platziverse#readme"
+}
