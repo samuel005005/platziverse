@@ -4,7 +4,7 @@
   "description": "A simpe IoT Platform - DB Module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env DEBUG=platziverse:* ava tests/ --verbose",
     "lint": "standard",
     "lint-fix": "standard --fix",
     "setup": "cross-env DEBUG=platziverse:* node setup.js"
@@ -23,12 +23,15 @@
     "chalk": "^4.1.2",
     "cross-env": "^7.0.3",
     "debug": "^4.3.4",
+    "defaults": "^1.0.3",
     "inquirer": "^8.2.4",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.21.3"
   },
   "devDependencies": {
+    "ava": "^4.3.1",
+    "sqlite3": "^5.0.11",
     "standard": "^17.0.0"
   }
 }
