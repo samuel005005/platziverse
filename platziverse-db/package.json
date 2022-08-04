@@ -4,7 +4,7 @@
   "description": "A simpe IoT Platform - DB Module",
   "main": "index.js",
   "scripts": {
-    "test": "cross-env DEBUG=platziverse:* ava tests/ --verbose",
+    "test": "cross-env DEBUG=platziverse:* nyc --reporter=lcov ava tests/ --verbose",
     "lint": "standard",
     "lint-fix": "standard --fix",
     "setup": "cross-env DEBUG=platziverse:* node setup.js"
@@ -31,6 +31,9 @@
   },
   "devDependencies": {
     "ava": "^4.3.1",
+    "nyc": "^15.1.0",
+    "proxyquire": "^2.1.3",
+    "sinon": "^14.0.0",
     "sqlite3": "^5.0.11",
     "standard": "^17.0.0"
   }

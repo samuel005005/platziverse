@@ -22,7 +22,7 @@ module.exports = async function (config) {
 
   AgentModel.hasMany(MetricModel)
   MetricModel.belongsTo(AgentModel)
-
+  console.log(AgentModel)
   await sequelize.authenticate()
 
   if (config.setup) {
