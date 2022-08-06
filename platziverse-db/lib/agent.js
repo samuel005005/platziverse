@@ -5,25 +5,25 @@ module.exports = function setupAgent (AgentModel) {
     return AgentModel.findById(id)
   }
 
-  function findByUiid (uuid) {
+  function findByUuid (uuid) {
     return AgentModel.findOne({
       where: {
         uuid
       }
     })
   }
-  function findByUserName (username) {
+  function findByUsername (username) {
     return AgentModel.findAll({
       where: {
         username,
-        conneted: true
+        connected: true
       }
     })
   }
   function findConnected () {
     return AgentModel.findAll({
       where: {
-        conneted: true
+        connected: true
       }
     })
   }
@@ -44,15 +44,15 @@ module.exports = function setupAgent (AgentModel) {
       return updated ? AgentModel.findOne(cond) : existingAgent
     }
     const result = await AgentModel.create(agent)
-    return result.toJson()
+    return result.toJSON()
   }
 
   return {
     findById,
-    findByUiid,
+    findByUuid,
     findAll,
     findConnected,
-    findByUserName,
+    findByUsername,
     createOrUpdate
   }
 }
