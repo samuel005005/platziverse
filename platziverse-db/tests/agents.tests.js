@@ -88,13 +88,6 @@ test('Agent', t => {
   t.truthy(db.Agent, 'Agent service should exist')
 })
 
-test.serial('Setup', t => {
-  t.true(AgentStub.hasMany.called, 'AgentModel.hasMany was execute')
-  t.true(AgentStub.hasMany.calledWith(MetricStub), 'Argument should be the Model')
-  t.true(MetricStub.belongsTo.called, 'MetricStub.belongsTo was execute')
-  t.true(MetricStub.belongsTo.calledWith(AgentStub), 'Argument should be the Model')
-})
-
 test.serial('Agent#findById', async t => {
   const agent = await db.Agent.findById(id)
   t.true(AgentStub.findById.called, 'findById should be called on model')
