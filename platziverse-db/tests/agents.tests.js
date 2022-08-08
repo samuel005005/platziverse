@@ -15,7 +15,7 @@ let db = null
 let sandbox = null
 const id = 1
 const username = 'platzi'
-const single = Object.assign({}, agentFixtures.single)
+const single = { ...agentFixtures.single }
 const uuid = 'yyy-yyy-yyy'
 const newAgent = {
   uuid: 'yyy-yyy-yyy3',

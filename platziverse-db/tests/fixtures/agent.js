@@ -14,15 +14,12 @@ const agent = {
 
 const agents = [
   agent,
-  extend(agent, { id: 2, uuid: 'yyy-yyy-yyy2', name: 'fixture 2', username: 'platzi', connected: false }),
-  extend(agent, { id: 3, uuid: 'yyy-yyy-yyy3' }),
-  extend(agent, { id: 4, uuid: 'yyy-yyy-yyy4', username: 'test' })
+  { ...agent, id: 2, uuid: 'yyy-yyy-yyy2', name: 'fixture 2', username: 'platzi', connected: false },
+  { ...agent, id: 3, uuid: 'yyy-yyy-yyy3' },
+  { ...agent, id: 4, uuid: 'yyy-yyy-yyy4', username: 'test' },
+  { ...agent, id: 5, uuid: 'yyy-yyy-yyy5' }
 ]
 
-function extend (obj, values) {
-  const clone = Object.assign({}, obj)
-  return Object.assign(clone, values)
-}
 module.exports = {
   single: agent,
   all: agents,

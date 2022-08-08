@@ -21,8 +21,7 @@ module.exports = function setupMetric (MetricModel, AgentModel) {
     })
 
     if (agent) {
-      Object.assign(metric, { agentId: agent.id })
-      const result = await MetricModel.create(metric)
+      const result = await MetricModel.create({ ...metric, agentId: agent.id })
       return result.toJSON()
     }
   }
