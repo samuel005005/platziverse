@@ -1,0 +1,50 @@
+version: "3"
+services:
+  postgres:
+    container_name: platziverse_postgres
+    build: 
+      context: ./platziverse-db/docker/
+      dockerfile: db.Dockerfile
+    environment:
+      - POSTGRES_USER=platzi
+      - POSTGRES_PASSWORD=swagga
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - platziverse-networks
+  redis:
+    container_name: platziverse_redis
+    image: "redis:alpine"
+    ports:
+        - "6379:6379"
+    volumes: 
+        - ./db_redis:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: always
+    networks:
+      - platziverse-networks    
+  pgadmin:
+    container_name: pgadmin4
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    networks:
+      - platziverse-networks
+  platziverse:
+    image: node:12.4.0-alpine
+    container_name: platziverse
+    volumes:
+    - ./:/app
+    ports:
+    - "8086:80"
+    networks:
+    - platziverse-networks
+networks:
+  platziverse-networks:
+    driver: bridge
