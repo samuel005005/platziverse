@@ -5,19 +5,30 @@ const chalk = require('chalk')
 const db = require('./')
 
 const prompt = inquirer.createPromptModule()
+const argv = require('yargs').option(
+  'force', {
+    alias: 'f',
+    type: 'boolean',
+    default: false,
+    description: 'Not question!  destroy database',
+    demandOption: false
+  }).argv
 
 async function setup () {
-  const answer = await prompt([
-    {
-      type: 'confirm',
-      name: 'setup',
-      message: 'This will destroy your database, are you sure?'
-    }
-  ])
+  if (!argv.force) {
+    const answer = await prompt([
+      {
+        type: 'confirm',
+        name: 'setup',
+        message: 'This will destroy your database, are you sure?'
+      }
+    ])
 
-  if (!answer.setup) {
-    return console.log('Nothing happened :)')
+    if (!answer.setup) {
+      return console.log('Nothing happened :)')
+    }
   }
+
   const config = {
     database: process.env.DB_NAME || 'platziverse',
     username: process.env.DB_USER || 'platzi',

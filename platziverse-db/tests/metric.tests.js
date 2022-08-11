@@ -11,7 +11,7 @@ const { metricFixtures, agentFixtures } = require('./fixtures/')
 
 let db = null; const uuid = 'yyy-yyy-yyy'
 
-let AgentStub, MetricStub, sandbox
+let AgentStub, MetricStub, sandbox, findByAgentUuidArgs
 
 const newMetric = {
   type: 'ram',
@@ -32,12 +32,28 @@ test.beforeEach(async () => {
 
   MetricStub = {
     belongsTo: sandbox.spy(),
-    create: sandbox.stub()
+    create: sandbox.stub(),
+    findAll: sandbox.stub()
   }
 
+  const baseArgs = {
+    include: [{
+      attributes: [],
+      model: AgentStub,
+      where: {
+        uuid
+      }
+    }],
+    raw: true
+  }
+  findByAgentUuidArgs = Object.assign({
+    attributes: ['type'],
+    group: ['type']
+  }, baseArgs)
+
+  MetricStub.findAll.withArgs(findByAgentUuidArgs).returns(Promise.resolve(metricFixtures.findByAgentUuid(uuid)))
   // AgentModel findOne Stub
   AgentStub.findOne.withArgs(findOneArgs).returns(Promise.resolve(agentFixtures.byUuid(uuid)))
-
   // MetricModel create Stub
   MetricStub.create.withArgs(newMetric).returns(Promise.resolve({
     toJSON () { return newMetric }
@@ -69,6 +85,17 @@ test.serial('Metric#create', async t => {
   t.true(MetricStub.create.called, 'create should be called on model')
   t.true(MetricStub.create.calledOnce, 'create should be called once')
   t.true(MetricStub.create.calledWith(newMetric), 'create  should be called with newMetric args')
-  
+
   t.deepEqual(metric, newMetric, 'should be the same')
+})
+
+test.serial('Metric#findByAgentUuid', async t => {
+  const metrics = await db.Metric.findByAgentUuid(uuid)
+  t.true(MetricStub.findAll.called, 'findAll should be called on model')
+  t.true(MetricStub.findAll.calledOnce, 'findAll should be called once')
+  t.true(MetricStub.findAll.calledWith(findByAgentUuidArgs), 'findAll should be called with findByAgentUuidArgs args')
+
+  const metricsCompare = metricFixtures.findByAgentUuid(uuid)
+  t.is(metrics.length, metricsCompare.length, 'metrics length should be same metricsCompare.length')
+  t.deepEqual(metrics, metricsCompare, 'metrics should be same metricsCompare')
 })
