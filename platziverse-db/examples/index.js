@@ -1,15 +1,10 @@
 'use strict'
 
 const db = require('../')
+const { configDB, handleFatalError } = require('platziverse-utils')
 
 async function run () {
-  const config = {
-    database: process.env.DB_NAME || 'platziverse',
-    username: process.env.DB_USER || 'platzi',
-    password: process.env.DB_PASS || 'swagga',
-    host: process.env.DB_HOST || 'localhost',
-    dialect: 'postgres'
-  }
+  const config = configDB(false, 'postgres', null)
 
   const { Agent, Metric } = await db(config).catch(handleFatalError)
 
@@ -29,10 +24,6 @@ async function run () {
   console.log('--all--agents--')
   console.log(agents)
 
-  const metrics = await Metric.findByAgentUuid(agent.uuid).catch(handleFatalError)
-  console.log('metrics--uuid-agents--')
-  console.log(metrics)
-
   const metric = await Metric.create(agent.uuid, {
     type: 'memory',
     value: 300
@@ -41,15 +32,13 @@ async function run () {
   console.log('--new-metric--')
   console.log(metric)
 
+  const metrics = await Metric.findByAgentUuid(agent.uuid).catch(handleFatalError)
+  console.log('metrics--uuid-agents--')
+  console.log(metrics)
+
   const metricsByType = await Metric.findByTypeAgentUuid('memory', agent.uuid).catch(handleFatalError)
   console.log('--metric--by--type--')
   console.log(metricsByType)
-}
-
-function handleFatalError (err) {
-  console.error(err.message)
-  console.error(err.stack)
-  process.exit(1)
 }
 
 run()

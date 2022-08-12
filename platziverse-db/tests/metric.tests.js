@@ -6,12 +6,12 @@ const proxyquire = require('proxyquire')
 const config = {
   logging: function () {}
 }
-
+const { extend } = require('platziverse-utils')
 const { metricFixtures, agentFixtures } = require('./fixtures/')
 
-let db = null; const uuid = 'yyy-yyy-yyy'
+let db = null; const uuid = 'yyy-yyy-yyy'; const type = 'ram'
 
-let AgentStub, MetricStub, sandbox, findByAgentUuidArgs
+let AgentStub, MetricStub, sandbox, findByAgentUuidArgs, findByTypeAgentUuidArgs
 
 const newMetric = {
   type: 'ram',
@@ -46,12 +46,19 @@ test.beforeEach(async () => {
     }],
     raw: true
   }
-  findByAgentUuidArgs = Object.assign({
-    attributes: ['type'],
-    group: ['type']
+
+  findByAgentUuidArgs = extend({ attributes: ['type'], group: ['type'] }, baseArgs)
+  findByTypeAgentUuidArgs = extend({
+    attributes: ['id', 'type', 'value', 'createdAt'],
+    where: {
+      type
+    },
+    limit: 20,
+    order: [['createdAt', 'DESC']]
   }, baseArgs)
 
   MetricStub.findAll.withArgs(findByAgentUuidArgs).returns(Promise.resolve(metricFixtures.findByAgentUuid(uuid)))
+  MetricStub.findAll.withArgs(findByTypeAgentUuidArgs).returns(Promise.resolve(metricFixtures.findByTypeAgentUuid(type, uuid)))
   // AgentModel findOne Stub
   AgentStub.findOne.withArgs(findOneArgs).returns(Promise.resolve(agentFixtures.byUuid(uuid)))
   // MetricModel create Stub
@@ -96,6 +103,18 @@ test.serial('Metric#findByAgentUuid', async t => {
   t.true(MetricStub.findAll.calledWith(findByAgentUuidArgs), 'findAll should be called with findByAgentUuidArgs args')
 
   const metricsCompare = metricFixtures.findByAgentUuid(uuid)
+  t.is(metrics.length, metricsCompare.length, 'metrics length should be same metricsCompare.length')
+  t.deepEqual(metrics, metricsCompare, 'metrics should be same metricsCompare')
+})
+
+test.serial('Metric#findByTypeAgentUuid', async t => {
+  const metrics = await db.Metric.findByTypeAgentUuid(type, uuid)
+
+  t.true(MetricStub.findAll.called, 'findAll should be called on model')
+  t.true(MetricStub.findAll.calledOnce, 'findAll should be called once')
+  t.true(MetricStub.findAll.calledWith(findByTypeAgentUuidArgs), 'findAll should be called with findByTypeAgentUuidArgs args')
+  
+  const metricsCompare = metricFixtures.findByTypeAgentUuid(type, uuid)
   t.is(metrics.length, metricsCompare.length, 'metrics length should be same metricsCompare.length')
   t.deepEqual(metrics, metricsCompare, 'metrics should be same metricsCompare')
 })

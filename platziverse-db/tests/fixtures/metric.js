@@ -1,6 +1,7 @@
 'use strict'
 
 const agentData = require('./agent')
+const { selectAttributes } = require('platziverse-utils')
 
 const metric = {
   id: 1,
@@ -27,7 +28,7 @@ function findByAgentUuid (uuid) {
 function findByTypeAgentUuid (type, uuid) {
   const agent = agentData.byUuid(uuid)
   const results = metrics.filter(m => m.agentId === agent.id && m.type === type)
-  return results.map(({ id, type, value, createAt }) => ({ id, type, value, createAt }))
+  return selectAttributes(results, ['id', 'type', 'value', 'createAt'])
 }
 
 module.exports = {
