@@ -14,7 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/samuel005005/platziverse.git"
   },
-  "author": "",
+  "author": "Samuel Paez <samuel005005@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/samuel005005/platziverse/issues"
@@ -29,6 +29,7 @@
     "chalk": "^4.1.2",
     "cross-env": "^7.0.3",
     "debug": "^4.3.4",
-    "redis": "^4.2.0"
+    "redis": "^4.2.0",
+    "platziverse-utils": "file:../platziverse-utils"
   }
 }

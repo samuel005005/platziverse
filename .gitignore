@@ -1,2 +1,3 @@
 db_redis
 postgres-data
+*/node_modules

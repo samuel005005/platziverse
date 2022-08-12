@@ -1,0 +1,23 @@
+{
+  "name": "platziverse-utils",
+  "version": "1.0.0",
+  "description": "A simple module with utils for project platziverse",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard",
+    "lint-fix": "standard --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samuel005005/platziverse.git"
+  },
+  "author": "Samuel Paez <samuel005005@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/samuel005005/platziverse/issues"
+  },
+  "homepage": "https://github.com/samuel005005/platziverse#readme",
+  "devDependencies": {
+    "standard": "^17.0.0"
+  }
+}
