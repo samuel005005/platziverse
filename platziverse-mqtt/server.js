@@ -3,10 +3,13 @@
 const debug = require('debug')('platziverse:mqtt:server')
 const redis = require('redis')
 const chalk = require('chalk')
-const { handleFatalError } = require('platziverse-utils')
+const { handleFatalError, configDB } = require('platziverse-utils')
 
 const aedes = require('aedes')()
 const server = require('net').createServer(aedes.handle)
+
+const db = require('platziverse-db')
+const config = configDB(false, 'postgres', s => debug(s))
 
 const backend = {
   type: 'redis',
@@ -18,6 +21,8 @@ const settings = {
   port: 1883,
   backend
 }
+
+let Agent, Metric
 
 // emitted when a client connects to the broker
 aedes.on('client', client => {
@@ -36,7 +41,12 @@ aedes.on('publish', (packet, client) => {
   }
 })
 
-server.listen(settings.port, function () {
+server.listen(settings.port, async () => {
+  const services = await db(config).catch(handleFatalError)
+
+  Agent = services.Agent
+  Metric = services.Metric
+
   console.log(`${chalk.green('[platziverse-mqtt]')} server is running`)
 })
 
