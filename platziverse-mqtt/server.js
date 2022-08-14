@@ -3,7 +3,7 @@
 const debug = require('debug')('platziverse:mqtt:server')
 const redis = require('redis')
 const chalk = require('chalk')
-const { handleFatalError, configDB } = require('platziverse-utils')
+const { handleFatalError, handleError, configDB, parsePayload } = require('platziverse-utils')
 
 const aedes = require('aedes')()
 const server = require('net').createServer(aedes.handle)
@@ -22,22 +22,103 @@ const settings = {
   backend
 }
 
+const clients = new Map() // The Map object stores key/value pairs. Any value (both value and primitive objects) can be used as a key or value.
+
 let Agent, Metric
 
 // emitted when a client connects to the broker
 aedes.on('client', client => {
-  debug(`CLIENT_CONNECTED : MQTT Client ${(client ? client.id : client)} connected to aedes broker ${aedes.id}`)
+  debug(`Client Connected ${client.id}`)
+  clients.set(client.id, null)
 })
 
 // emitted when a client disconnects from the broker
-aedes.on('clientDisconnect', client => {
-  debug(`CLIENT_DISCONNECTED : MQTT Client ${(client ? client.id : client)} disconnected from the aedes broker ${aedes.id}`)
+aedes.on('clientDisconnect', async client => {
+  debug(`Client disconnected ${client.id}`)
+  const agent = clients.get(client.id)
+  if (agent) {
+    agent.connected = false
+
+    try {
+      await Agent.createOrUpdate(agent)
+    } catch (error) {
+      return handleError(error)
+    }
+    // Delete Agent from clients List
+    clients.delete(client.id)
+
+    server.publish({
+      topic: 'agent/disconnected',
+      payload: JSON.stringify({
+        uuid: agent.uuid
+      })
+    })
+
+    debug(`Client ${client.id} associated to Agent ${agent.uuid} was marked as disconneted`)
+  }
 })
 
 // emitted when a client publishes a message packet on the topic
-aedes.on('publish', (packet, client) => {
-  if (client) {
-    debug(`MESSAGE_PUBLISHED : MQTT Client ${(client ? client.id : 'AEDES BROKER_' + aedes.id)} has published message "${packet.payload}" on ${packet.topic} to aedes broker ${aedes.id}`)
+aedes.on('publish', async (packet, client) => {
+  debug(`Received: ${packet.topic}`)
+  let payload
+
+  switch (packet.topic) {
+    case 'agent/connected':
+    case 'agent/disconnected':
+      debug(`Payload: ${packet.payload}`)
+      break
+    case 'agent/message':
+
+      debug(`Payload: ${packet.payload}`)
+
+      payload = parsePayload(packet.payload)
+
+      if (payload) {
+        payload.agent.connected = true
+
+        let agent
+        try {
+          agent = await Agent.createOrUpdate(payload.agent)
+        } catch (error) {
+          return handleError(error)
+        }
+
+        debug(`Agent ${agent.uuid} saved`)
+
+        // Notify Agent is Connected
+        if (!clients.get(client.id)) {
+          clients.set(client.id, agent)
+          server.publish({
+            topic: 'agent/connected',
+            payload: JSON.stringify({
+              agent: {
+                uuid: agent.uuid,
+                name: agent.name,
+                hostname: agent.hostname,
+                pid: agent.pid,
+                connected: agent.connected
+              }
+            })
+          })
+        }
+
+        /// Store Metrics
+
+        for (const metric of payload.metrics) {
+          let m
+          try {
+            m = await Metric.create(agent.uuid, metric)
+          } catch (error) {
+            return handleError(error)
+          }
+          debug(`Metric ${m.id} saved on agent ${agent.uuid}`)
+        }
+      }
+
+      break
+    default:
+      break
   }
 })
 
