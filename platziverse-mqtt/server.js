@@ -47,7 +47,7 @@ aedes.on('clientDisconnect', async client => {
     // Delete Agent from clients List
     clients.delete(client.id)
 
-    server.publish({
+    aedes.publish({
       topic: 'agent/disconnected',
       payload: JSON.stringify({
         uuid: agent.uuid
@@ -69,11 +69,10 @@ aedes.on('publish', async (packet, client) => {
       debug(`Payload: ${packet.payload}`)
       break
     case 'agent/message':
-
       debug(`Payload: ${packet.payload}`)
 
       payload = parsePayload(packet.payload)
-
+      debug(payload)
       if (payload) {
         payload.agent.connected = true
 
@@ -89,7 +88,7 @@ aedes.on('publish', async (packet, client) => {
         // Notify Agent is Connected
         if (!clients.get(client.id)) {
           clients.set(client.id, agent)
-          server.publish({
+          aedes.publish({
             topic: 'agent/connected',
             payload: JSON.stringify({
               agent: {

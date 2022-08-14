@@ -6,6 +6,11 @@ function handleFatalError (err) {
   process.exit(1)
 }
 
+function handleError (err) {
+  console.error(`${chalk.red('[Error]')} ${err.message}`)
+  console.error(err.stack)
+}
+
 function configDB (setup, dialect, logging) {
   const config = {
     database: process.env.DB_NAME || 'platziverse',
@@ -64,6 +69,7 @@ function bodyError (strings, ...keys) {
 }
 module.exports = {
   handleFatalError,
+  handleError,
   configDB,
   parsePayload,
   extend,
