@@ -103,8 +103,7 @@ aedes.on('publish', async (packet, client) => {
         }
 
         /// Store Metrics
-
-        for (const metric of payload.metrics) {
+        await Promise.all(payload.metrics.map(async (metric) => {
           let m
           try {
             m = await Metric.create(agent.uuid, metric)
@@ -112,7 +111,7 @@ aedes.on('publish', async (packet, client) => {
             return handleError(error)
           }
           debug(`Metric ${m.id} saved on agent ${agent.uuid}`)
-        }
+        }))
       }
 
       break
