@@ -31,7 +31,8 @@
 
     setTimeout(()=> agent.disconnect(), 20000)
 
-      agent.addMetric('rss', function getRss () {
+    
+    agent.addMetric('rss', function getRss () {
         return process.memoryUsage().rss
     })
 

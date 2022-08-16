@@ -1,0 +1,33 @@
+{
+  "name": "platziverse-api",
+  "version": "1.0.0",
+  "private": "true",
+  "description": "A simple IoT Platform - API",
+  "main": "server.js",
+  "scripts": {
+    "start": "NODE_ENV=production node server.js",
+    "start-dev": "cross-env DEBUG=platziverse:* nodemon server.js",
+    "lint": "standard",
+    "lint-fix": "standard --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samuel005005/platziverse.git"
+  },
+  "author": "Samuel Paez",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/samuel005005/platziverse/issues"
+  },
+  "homepage": "https://github.com/samuel005005/platziverse#readme",
+  "devDependencies": {
+    "nodemon": "^2.0.19",
+    "standard": "^17.0.0"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "cross-env": "^7.0.3",
+    "debug": "^4.3.4",
+    "express": "^4.18.1"
+  }
+}
