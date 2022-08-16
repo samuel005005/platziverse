@@ -59,7 +59,7 @@ class PlaziverseAgent extends EventEmmiter {
                 uuid: this._agentId,
                 username: opts.username,
                 name: opts.name,
-                host: os.hostname() || 'localhost',
+                hostname: os.hostname() || 'localhost',
                 pid: process.pid
               },
               metrics: [],
