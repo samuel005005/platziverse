@@ -11,19 +11,7 @@
         username: 'admin'
     })
 
-    agent.addMetric('rss', function getRss () {
-        return process.memoryUsage().rss
-    })
-
-    agent.addMetric('rss', function getRandomPromise () {
-        return Promise.resolve(Math.random())
-    })
-
-    agent.addMetric('callbackMetric', function getRandomCallback (callback) {
-        setTimeout(() => {
-          callback(null, Math.random())
-        }, 1000)
-    })
+  
     agent.connect()
 
     // This agent only
@@ -42,5 +30,19 @@
     })
 
     setTimeout(()=> agent.disconnect(), 20000)
+
+      agent.addMetric('rss', function getRss () {
+        return process.memoryUsage().rss
+    })
+
+    agent.addMetric('rss', function getRandomPromise () {
+        return Promise.resolve(Math.random())
+    })
+
+    agent.addMetric('callbackMetric', function getRandomCallback (callback) {
+        setTimeout(() => {
+          callback(null, Math.random())
+        }, 1000)
+    })
 
 ```
