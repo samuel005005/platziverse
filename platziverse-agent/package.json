@@ -20,5 +20,12 @@
   "homepage": "https://github.com/samuel005005/platziverse#readme",
   "devDependencies": {
     "standard": "^17.0.0"
+  },
+  "dependencies": {
+    "debug": "^4.3.4",
+    "defaults": "^1.0.3",
+    "mqtt": "^4.3.7",
+    "platziverse-utils": "file:../platziverse-utils",
+    "uuid": "^8.3.2"
   }
 }
