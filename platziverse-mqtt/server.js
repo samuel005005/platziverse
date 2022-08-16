@@ -103,17 +103,21 @@ aedes.on('publish', async (packet, client) => {
         }
 
         /// Store Metrics
-        await Promise.all(payload.metrics.map(async (metric) => {
-          let m
-          try {
-            m = await Metric.create(agent.uuid, metric)
-          } catch (error) {
-            return handleError(error)
+        await Promise.allSettled(payload.metrics
+          .map(
+            async (metric) =>
+              Metric.create(agent.uuid, metric)
+          )).then(response => {
+          for (const res of response) {
+            const { status, value } = res
+            if (status === 'fulfilled') {
+              debug(`Metric ${value.id} saved on agent ${agent.uuid}`)
+            } else if (status === 'rejected') {
+              handleError(value)
+            }
           }
-          debug(`Metric ${m.id} saved on agent ${agent.uuid}`)
-        }))
+        })
       }
-
       break
     default:
       break
