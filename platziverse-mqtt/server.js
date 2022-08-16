@@ -72,7 +72,7 @@ aedes.on('publish', async (packet, client) => {
       debug(`Payload: ${packet.payload}`)
 
       payload = parsePayload(packet.payload)
-      debug(payload)
+      
       if (payload) {
         payload.agent.connected = true
 
