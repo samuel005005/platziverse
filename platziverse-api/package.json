@@ -5,6 +5,7 @@
   "description": "A simple IoT Platform - API",
   "main": "server.js",
   "scripts": {
+    "test": "cross-env DEBUG=platziverse:* nyc --reporter=lcov ava tests/ --verbose",
     "start": "NODE_ENV=production node server.js",
     "start-dev": "cross-env DEBUG=platziverse:* nodemon server.js",
     "lint": "standard",
@@ -21,13 +22,18 @@
   },
   "homepage": "https://github.com/samuel005005/platziverse#readme",
   "devDependencies": {
+    "ava": "^4.3.1",
     "nodemon": "^2.0.19",
-    "standard": "^17.0.0"
+    "nyc": "^15.1.0",
+    "standard": "^17.0.0",
+    "supertest": "^6.2.4"
   },
   "dependencies": {
     "chalk": "^4.1.2",
     "cross-env": "^7.0.3",
     "debug": "^4.3.4",
-    "express": "^4.18.1"
+    "express": "^4.18.1",
+    "platziverse-utils": "file:../platziverse-utils",
+    "platziverse-db": "file:../platziverse-db"
   }
 }
