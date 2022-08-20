@@ -101,9 +101,6 @@ class InternalError extends DomainError {
   }
 }
 module.exports = {
-  ResourceNotFoundError,
-  Unauthorized,
-  InternalError,
   handleFatalError,
   handleError,
   configDB,
