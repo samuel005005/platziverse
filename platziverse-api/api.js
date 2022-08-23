@@ -11,11 +11,11 @@ const api = express.Router()
 let services, Agent, Metric
 
 api.use('*', async (req, res, next) => {
-  const config = configDB(false, 'postgres', s => debug(s))
+  
   if (!services) {
     debug('Connecting to database')
     try {
-      services = await db(config).catch(handleFatalError)
+      services = await db(configDB(false, 'postgres', s => debug(s))).catch(handleFatalError)
     } catch (error) {
       return next(error)
     }
@@ -26,6 +26,7 @@ api.use('*', async (req, res, next) => {
 })
 
 api.get('/agents', async (req, res, next) => {
+  
   debug('A request has come to Agents')
   let agents = []
   try {
@@ -81,7 +82,7 @@ api.get('/metrics/:uuid/:type', async (req, res, next) => {
     next(error)
   }
 
-  if (!metrics || metrics.lenght === 0) {
+  if (!metrics || metrics.length === 0) {
     return next(new Error(`Metrics not found for agent with uuid  ${uuid} and type ${type}`))
   }
 
