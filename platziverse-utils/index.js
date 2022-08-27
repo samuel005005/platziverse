@@ -11,15 +11,21 @@ function handleError (err) {
   console.error(err.stack)
 }
 
-function configDB (setup, dialect, logging) {
+function configuration (setup, dialect, logging) {
   const config = {
-    database: process.env.DB_NAME || 'platziverse',
-    username: process.env.DB_USER || 'platzi',
-    password: process.env.DB_PASS || 'swagga',
-    host: process.env.DB_HOST || 'localhost',
-    dialect,
-    logging,
-    setup
+    db: {
+      database: process.env.DB_NAME || 'platziverse',
+      username: process.env.DB_USER || 'platzi',
+      password: process.env.DB_PASS || 'swagga',
+      host: process.env.DB_HOST || 'localhost',
+      dialect,
+      logging,
+      setup
+    },
+    auth: {
+      secret: process.env.SECRET || 'platzi',
+      algorithms: ["HS256"]
+    }
   }
   return config
 }
@@ -69,43 +75,45 @@ function bodyError (strings, ...keys) {
 }
 
 class DomainError extends Error {
-  constructor(message) {
-    super(message);
-   // Ensure the name of this error is the same as the class name
-    this.name = this.constructor.name;
-   // This clips the constructor invocation from the stack trace.
-   // It's not absolutely essential, but it does make the stack trace a little nicer.
-   //  @see Node.js reference (bottom)
-    Error.captureStackTrace(this, this.constructor);
+  constructor (message) {
+    super(message)
+    // Ensure the name of this error is the same as the class name
+    this.name = this.constructor.name
+    // This clips the constructor invocation from the stack trace.
+    // It's not absolutely essential, but it does make the stack trace a little nicer.
+    //  @see Node.js reference (bottom)
+    Error.captureStackTrace(this, this.constructor)
   }
 }
 
-
 class Unauthorized extends DomainError {
-  constructor(resource, query) {
-    super(`Resource ${resource} Unauthorized.`);
-    this.data = { resource, query };
+  constructor (resource, query) {
+    super(`Resource ${resource} Unauthorized.`)
+    this.data = { resource, query }
   }
 }
 class ResourceNotFoundError extends DomainError {
-  constructor(resource, query) {
-    super(`Resource ${resource} was not found.`);
-    this.data = { resource, query };
+  constructor (resource, query) {
+    super(`Resource ${resource} was not found.`)
+    this.data = { resource, query }
   }
 }
 
 class InternalError extends DomainError {
-  constructor(error) {
-    super(error.message);
-    this.data = { error };
+  constructor (error) {
+    super(error.message)
+    this.data = { error }
   }
 }
 module.exports = {
   handleFatalError,
   handleError,
-  configDB,
+  configuration,
   parsePayload,
   extend,
   selectAttributes,
-  bodyError
+  bodyError,
+  Unauthorized,
+  ResourceNotFoundError,
+  InternalError
 }

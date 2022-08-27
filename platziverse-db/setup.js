@@ -2,7 +2,7 @@
 const debug = require('debug')('platziverse:db:setup')
 const inquirer = require('inquirer')
 const db = require('./')
-const { configDB, handleFatalError } = require('platziverse-utils')
+const { configuration, handleFatalError } = require('platziverse-utils')
 
 const prompt = inquirer.createPromptModule()
 const argv = require('yargs').option(
@@ -29,7 +29,7 @@ async function setup () {
     }
   }
 
-  const config = configDB(true, 'postgres', s => debug(s))
+  const config = configuration(true, 'postgres', s => debug(s))
 
   await db(config).catch(handleFatalError)
 

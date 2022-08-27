@@ -1,10 +1,10 @@
 'use strict'
 
 const db = require('../')
-const { configDB, handleFatalError } = require('platziverse-utils')
+const { configuration, handleFatalError } = require('platziverse-utils')
 
 async function run () {
-  const config = configDB(false, 'postgres', null)
+  const config = configuration(false, 'postgres', null)
 
   const { Agent, Metric } = await db(config).catch(handleFatalError)
 

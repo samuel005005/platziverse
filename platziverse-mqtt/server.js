@@ -3,13 +3,13 @@
 const debug = require('debug')('platziverse:mqtt:server')
 const redis = require('redis')
 const chalk = require('chalk')
-const { handleFatalError, handleError, configDB, parsePayload } = require('platziverse-utils')
+const { handleFatalError, handleError, configuration, parsePayload } = require('platziverse-utils')
 
 const aedes = require('aedes')()
 const server = require('net').createServer(aedes.handle)
 
 const db = require('platziverse-db')
-const config = configDB(false, 'postgres', s => debug(s))
+const config = configuration(false, 'postgres', s => debug(s))
 
 const backend = {
   type: 'redis',

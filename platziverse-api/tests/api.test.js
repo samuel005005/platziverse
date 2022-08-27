@@ -18,12 +18,11 @@ const agentbyUuid = agentFixtures.byUuid(uuid)
 test.beforeEach(async () => {
   sandbox = sinon.createSandbox()
 
-
-    // AgentStub findConnected
+  // AgentStub findConnected
   AgentStub.findConnected = sandbox.stub()
   AgentStub.findConnected.withArgs().returns(Promise.resolve(agentFixtures.connected))
 
-  // AgentStub findByUuid 
+  // AgentStub findByUuid
   AgentStub.findByUuid = sandbox.stub()
   AgentStub.findByUuid.withArgs(uuid).returns(Promise.resolve(agentbyUuid))
 
@@ -48,7 +47,7 @@ test.afterEach(() => {
 
 test.serial('/api/agents', async t => {
   const { header, statusCode, error, body } = await request(server).get('/api/agents')
-  
+
   t.regex(header['content-type'], /json/, 'response Content Type should be json type')
   t.deepEqual(statusCode, 200, 'response status code should be 200')
   t.falsy(error, 'should not return an error')
@@ -57,7 +56,7 @@ test.serial('/api/agents', async t => {
 
 test.serial('/api/agent/:uuid', async t => {
   const { header, statusCode, error, body } = await request(server).get(`/api/agent/${uuid}`)
-  
+
   t.regex(header['content-type'], /json/, 'response Content Type should be json type')
   t.deepEqual(statusCode, 200, 'response status code should be 200')
   t.falsy(error, 'should not return an error')
@@ -66,7 +65,7 @@ test.serial('/api/agent/:uuid', async t => {
 
 test.serial('/api/agent/:uuid -- no found', async t => {
   const { header, statusCode, error, body } = await request(server).get(`/api/agent/${uuid}`)
-  
+
   t.regex(header['content-type'], /json/, 'response Content Type should be json type')
   t.deepEqual(statusCode, 200, 'response status code should be 200')
   t.falsy(error, 'should not return an error')

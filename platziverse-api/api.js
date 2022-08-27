@@ -3,19 +3,18 @@
 const debug = require('debug')('platziverse:api:routes')
 const express = require('express')
 const db = require('platziverse-db')
-
-const { handleFatalError, configDB } = require('platziverse-utils')
-
+const {expressjwt: auth} = require('express-jwt')
+const { handleFatalError, configuration } = require('platziverse-utils')
+const config = configuration(false, 'postgres', s => debug(s))
 const api = express.Router()
 
 let services, Agent, Metric
 
 api.use('*', async (req, res, next) => {
-  
   if (!services) {
     debug('Connecting to database')
     try {
-      services = await db(configDB(false, 'postgres', s => debug(s))).catch(handleFatalError)
+      services = await db(config.db).catch(handleFatalError)
     } catch (error) {
       return next(error)
     }
@@ -25,9 +24,9 @@ api.use('*', async (req, res, next) => {
   next()
 })
 
-api.get('/agents', async (req, res, next) => {
-  
+api.get('/agents',auth(config.auth) , async (req, res, next) => {
   debug('A request has come to Agents')
+
   let agents = []
   try {
     agents = await Agent.findConnected()

@@ -20,5 +20,8 @@
   "homepage": "https://github.com/samuel005005/platziverse#readme",
   "devDependencies": {
     "standard": "^17.0.0"
+  },
+  "dependencies": {
+    "defaults": "^1.0.3"
   }
 }
