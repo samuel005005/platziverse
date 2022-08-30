@@ -3,15 +3,21 @@
 const test = require('ava')
 const request = require('supertest')
 const sinon = require('sinon')
+const util = require('util')
 const proxyquire = require('proxyquire')
 const agentFixtures = require('./fixtures/agent')
-const uuid = 'yyy-yyy-yyy3'
+const { configuration } = require('platziverse-utils')
+const config = configuration(false, 'postgres', s => debug(s))
+const uuid = 'yyy-yyy-yyy'
+const auth = require('../auth')
+const sign = util.promisify(auth.sign)
 
 let server = null
 let sandbox = null
 let dbStub = null
 const AgentStub = {}
 const MetricStub = {}
+let token = null
 
 const agentbyUuid = agentFixtures.byUuid(uuid)
 
@@ -32,6 +38,8 @@ test.beforeEach(async () => {
     Metric: MetricStub
   }))
 
+  token = await sign({ admin: true, username: 'platzi' }, config.auth.secret)
+
   const api = proxyquire('../api', {
     'platziverse-db': dbStub
   })
@@ -39,6 +47,7 @@ test.beforeEach(async () => {
   server = proxyquire('../server', {
     './api': api
   })
+
 })
 
 test.afterEach(() => {
@@ -46,7 +55,7 @@ test.afterEach(() => {
 })
 
 test.serial('/api/agents', async t => {
-  const { header, statusCode, error, body } = await request(server).get('/api/agents')
+  const { header, statusCode, error, body } = await request(server).get('/api/agents').set('Authorization', `Bearer ${token}`)
 
   t.regex(header['content-type'], /json/, 'response Content Type should be json type')
   t.deepEqual(statusCode, 200, 'response status code should be 200')

@@ -3,7 +3,8 @@
 const debug = require('debug')('platziverse:api:routes')
 const express = require('express')
 const db = require('platziverse-db')
-const {expressjwt: auth} = require('express-jwt')
+const util = require('util')
+const { expressjwt: auth } = require('express-jwt')
 const { handleFatalError, configuration } = require('platziverse-utils')
 const config = configuration(false, 'postgres', s => debug(s))
 const api = express.Router()
@@ -24,7 +25,7 @@ api.use('*', async (req, res, next) => {
   next()
 })
 
-api.get('/agents',auth(config.auth) , async (req, res, next) => {
+api.get('/agents', auth(config.auth), async (req, res, next) => {
   debug('A request has come to Agents')
 
   let agents = []

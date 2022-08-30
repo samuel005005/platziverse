@@ -1,17 +1,17 @@
 const chalk = require('chalk')
 
-function handleFatalError (err) {
+function handleFatalError(err) {
   console.error(`${chalk.red('[fatal error]')} ${err.message}`)
   console.error(err.stack)
   process.exit(1)
 }
 
-function handleError (err) {
+function handleError(err) {
   console.error(`${chalk.red('[Error]')} ${err.message}`)
   console.error(err.stack)
 }
 
-function configuration (setup, dialect, logging) {
+function configuration(setup, dialect, logging) {
   const config = {
     db: {
       database: process.env.DB_NAME || 'platziverse',
@@ -29,7 +29,7 @@ function configuration (setup, dialect, logging) {
   }
   return config
 }
-function parsePayload (payload) {
+function parsePayload(payload) {
   if (payload instanceof Buffer) {
     payload = payload.toString('utf8')
   }
@@ -42,7 +42,7 @@ function parsePayload (payload) {
   return payload
 }
 
-function selectKeys (obj, keys) {
+function selectKeys(obj, keys) {
   // Validando si la key tiene el objeto
   const keysObj = Object.keys(obj)
   const selectedKeys = keys.filter(key => keysObj.includes(key))
@@ -54,17 +54,17 @@ function selectKeys (obj, keys) {
   return objResult
 }
 
-function extend (obj, values) {
+function extend(obj, values) {
   const clone = Object.assign({}, obj)
   return Object.assign(clone, values)
 }
 
-function selectAttributes (array, attributes) {
+function selectAttributes(array, attributes) {
   const selected = array.map(obj => selectKeys(obj, attributes))
   return selected
 }
 
-function bodyError (strings, ...keys) {
+function bodyError(strings, ...keys) {
   return function (...values) {
     const result = [strings[0]]
     keys.forEach((key, i) => {
@@ -75,7 +75,7 @@ function bodyError (strings, ...keys) {
 }
 
 class DomainError extends Error {
-  constructor (message) {
+  constructor(message) {
     super(message)
     // Ensure the name of this error is the same as the class name
     this.name = this.constructor.name
@@ -87,20 +87,20 @@ class DomainError extends Error {
 }
 
 class Unauthorized extends DomainError {
-  constructor (resource, query) {
+  constructor(resource, query) {
     super(`Resource ${resource} Unauthorized.`)
     this.data = { resource, query }
   }
 }
 class ResourceNotFoundError extends DomainError {
-  constructor (resource, query) {
+  constructor(resource, query) {
     super(`Resource ${resource} was not found.`)
     this.data = { resource, query }
   }
 }
 
 class InternalError extends DomainError {
-  constructor (error) {
+  constructor(error) {
     super(error.message)
     this.data = { error }
   }
