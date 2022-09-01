@@ -3,7 +3,6 @@
 const debug = require('debug')('platziverse:api:routes')
 const express = require('express')
 const db = require('platziverse-db')
-const util = require('util')
 const { expressjwt: auth } = require('express-jwt')
 const { handleFatalError, configuration } = require('platziverse-utils')
 const config = configuration(false, 'postgres', s => debug(s))
@@ -28,17 +27,36 @@ api.use('*', async (req, res, next) => {
 api.get('/agents', auth(config.auth), async (req, res, next) => {
   debug('A request has come to Agents')
 
+  const { auth } = req
+
+  if (!auth || !auth.username) {
+    return next(new Error('No authorization'))
+  }
+
   let agents = []
   try {
-    agents = await Agent.findConnected()
+    if (auth.admin) {
+      agents = await Agent.findConnected()
+    } else {
+      agents = await Agent.findByUsername(auth.username)
+    }
   } catch (error) {
-    next(error)
+    return next(error)
   }
+
   res.json(agents)
 })
 
-api.get('/agent/:uuid', async (req, res, next) => {
-  const { uuid } = req.params
+api.get('/agent/:uuid', auth(config.auth), async (req, res, next) => {
+
+  const { auth, params } = req
+
+  if (!auth || !auth.username) {
+    return next(new Error('No authorization'))
+  }
+
+  const { uuid } = params
+  
   let agent
   try {
     agent = await Agent.findByUuid(uuid)
@@ -53,8 +71,15 @@ api.get('/agent/:uuid', async (req, res, next) => {
   res.json(agent)
 })
 
-api.get('/metrics/:uuid', async (req, res, next) => {
-  const { uuid } = req.params
+api.get('/metrics/:uuid', auth(config.auth), async (req, res, next) => {
+
+  const { auth, params } = req
+
+  if (!auth || !auth.username) {
+    return next(new Error('No authorization'))
+  }
+
+  const { uuid } = params
 
   debug(`request to metrics/${uuid}`)
   let metrics = []
@@ -71,13 +96,22 @@ api.get('/metrics/:uuid', async (req, res, next) => {
   res.json(metrics)
 })
 
-api.get('/metrics/:uuid/:type', async (req, res, next) => {
-  const { uuid, type } = req.params
+api.get('/metrics/:type/:uuid', auth(config.auth), async (req, res, next) => {
+
+  const { auth, params } = req
+
+  if (!auth || !auth.username) {
+    return next(new Error('No authorization'))
+  }
+
+  const { uuid, type } = params
 
   debug(`request to metrics/${uuid}/${type}`)
+
   let metrics = []
   try {
-    metrics = await Metric.findByTypeAgentUuid(uuid, type)
+    console.log(type)
+    metrics = await Metric.findByTypeAgentUuid(type, uuid)
   } catch (error) {
     next(error)
   }
