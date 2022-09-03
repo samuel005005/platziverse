@@ -23,7 +23,7 @@ const MetricStub = {}
 let token = null
 
 const agentbyUuid = agentFixtures.byUuid(uuid)
-const findByAgentUuid =  metricsFixtures.findByAgentUuid(uuid)
+const findByAgentUuid = metricsFixtures.findByAgentUuid(uuid)
 const findByTypeAgentUuid = metricsFixtures.findByTypeAgentUuid(type, uuid)
 
 test.beforeEach(async () => {
@@ -43,7 +43,7 @@ test.beforeEach(async () => {
   MetricStub.findByAgentUuid = sandbox.stub()
   MetricStub.findByAgentUuid.withArgs(uuid).returns(Promise.resolve(findByAgentUuid))
 
-  //findByTypeAgentUuid
+  // findByTypeAgentUuid
   MetricStub.findByTypeAgentUuid = sandbox.stub()
   MetricStub.findByTypeAgentUuid.withArgs(type, uuid).returns(Promise.resolve(findByTypeAgentUuid))
   // DBStub
@@ -136,8 +136,6 @@ test.serial('/api/metrics/:uuid - not authorized', async t => {
   t.truthy(error, 'should not return an error')
   t.deepEqual(JSON.stringify(body), '{"error":"No authorization token was found"}', 'response body should be the expected')
 })
-
-
 
 test.serial('/api/metrics/:type/:uuid', async t => {
   const { header, statusCode, error, body } = await request(server).get(`/api/metrics/${type}/${uuid}`).set('Authorization', `Bearer ${token}`)

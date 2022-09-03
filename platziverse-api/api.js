@@ -3,9 +3,11 @@
 const debug = require('debug')('platziverse:api:routes')
 const express = require('express')
 const db = require('platziverse-db')
-const { expressjwt: auth } = require('express-jwt')
 const { handleFatalError, configuration } = require('platziverse-utils')
+const { expressjwt: auth } = require('express-jwt')
 const config = configuration(false, 'postgres', s => debug(s))
+const guard = require('express-jwt-permissions')(config.auth)
+
 const api = express.Router()
 
 let services, Agent, Metric
@@ -24,7 +26,7 @@ api.use('*', async (req, res, next) => {
   next()
 })
 
-api.get('/agents', auth(config.auth), async (req, res, next) => {
+api.get('/agents', auth(config.auth), guard.check(['agent:read']), async (req, res, next) => {
   debug('A request has come to Agents')
 
   const { auth } = req
@@ -35,6 +37,7 @@ api.get('/agents', auth(config.auth), async (req, res, next) => {
 
   let agents = []
   try {
+    console.log(auth.admin)
     if (auth.admin) {
       agents = await Agent.findConnected()
     } else {
@@ -47,8 +50,7 @@ api.get('/agents', auth(config.auth), async (req, res, next) => {
   res.json(agents)
 })
 
-api.get('/agent/:uuid', auth(config.auth), async (req, res, next) => {
-
+api.get('/agent/:uuid', auth(config.auth), guard.check(['agent:read']), async (req, res, next) => {
   const { auth, params } = req
 
   if (!auth || !auth.username) {
@@ -56,7 +58,7 @@ api.get('/agent/:uuid', auth(config.auth), async (req, res, next) => {
   }
 
   const { uuid } = params
-  
+
   let agent
   try {
     agent = await Agent.findByUuid(uuid)
@@ -71,8 +73,7 @@ api.get('/agent/:uuid', auth(config.auth), async (req, res, next) => {
   res.json(agent)
 })
 
-api.get('/metrics/:uuid', auth(config.auth), async (req, res, next) => {
-
+api.get('/metrics/:uuid', auth(config.auth), guard.check(['metrics:read']), async (req, res, next) => {
   const { auth, params } = req
 
   if (!auth || !auth.username) {
@@ -96,8 +97,7 @@ api.get('/metrics/:uuid', auth(config.auth), async (req, res, next) => {
   res.json(metrics)
 })
 
-api.get('/metrics/:type/:uuid', auth(config.auth), async (req, res, next) => {
-
+api.get('/metrics/:type/:uuid', auth(config.auth), guard.check(['metrics:read']), async (req, res, next) => {
   const { auth, params } = req
 
   if (!auth || !auth.username) {

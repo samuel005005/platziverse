@@ -24,7 +24,8 @@ function configuration(setup, dialect, logging) {
     },
     auth: {
       secret: process.env.SECRET || 'platzi',
-      algorithms: ["HS256"]
+      algorithms: ["HS256"],
+      requestProperty:'auth'
     }
   }
   return config
