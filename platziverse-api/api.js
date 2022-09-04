@@ -3,7 +3,8 @@
 const debug = require('debug')('platziverse:api:routes')
 const express = require('express')
 const db = require('platziverse-db')
-const { handleFatalError, configuration } = require('platziverse-utils')
+const { handle, configuration } = require('platziverse-utils')
+const { handleFatalError } = handle
 const { expressjwt: auth } = require('express-jwt')
 const config = configuration(false, 'postgres', s => debug(s))
 const guard = require('express-jwt-permissions')(config.auth)

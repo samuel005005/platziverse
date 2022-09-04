@@ -1,5 +1,3 @@
-'use strict'
-
 const jwt = require('jsonwebtoken')
 
 function sign (payload, secret, callback) {

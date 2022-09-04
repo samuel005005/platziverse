@@ -1,7 +1,7 @@
 'use strict'
 
 const agentData = require('./agent')
-const { selectAttributes } = require('platziverse-utils')
+const { selectAttributes } = require('../utils')
 
 const metric = {
   id: 1,

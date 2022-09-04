@@ -5,7 +5,8 @@ const chalk = require('chalk')
 const express = require('express')
 const debug = require('debug')('platziverse:api:server')
 
-const { handleFatalError } = require('platziverse-utils')
+const { handle } = require('platziverse-utils')
+const { handleFatalError } = handle
 
 const api = require('./api')
 

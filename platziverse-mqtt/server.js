@@ -3,8 +3,9 @@
 const debug = require('debug')('platziverse:mqtt:server')
 const redis = require('redis')
 const chalk = require('chalk')
-const { handleFatalError, handleError, configuration, parsePayload } = require('platziverse-utils')
-
+const {  handle, configuration, utils  } = require('platziverse-utils')
+const { parsePayload } = utils
+const  { handleFatalError , handleError} = handle
 const aedes = require('aedes')()
 const server = require('net').createServer(aedes.handle)
 

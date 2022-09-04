@@ -6,7 +6,8 @@ const util = require('util')
 const mqtt = require('mqtt')
 const defaults = require('defaults')
 const EventEmmiter = require('events')
-const { parsePayload } = require('platziverse-utils')
+const { utils } = require('platziverse-utils')
+const { parsePayload } = utils
 const uuid = require('uuid')
 
 const options = {

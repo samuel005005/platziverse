@@ -6,8 +6,9 @@ const proxyquire = require('proxyquire')
 const config = {
   logging: function () {}
 }
-const { extend } = require('platziverse-utils')
-const { metricFixtures, agentFixtures } = require('./fixtures/')
+const { utils, fixtures } = require('platziverse-utils')
+const { extend } = utils
+const { metricFixtures, agentFixtures } = fixtures
 
 let db = null; const uuid = 'yyy-yyy-yyy'; const type = 'ram'
 
@@ -113,7 +114,7 @@ test.serial('Metric#findByTypeAgentUuid', async t => {
   t.true(MetricStub.findAll.called, 'findAll should be called on model')
   t.true(MetricStub.findAll.calledOnce, 'findAll should be called once')
   t.true(MetricStub.findAll.calledWith(findByTypeAgentUuidArgs), 'findAll should be called with findByTypeAgentUuidArgs args')
-  
+
   const metricsCompare = metricFixtures.findByTypeAgentUuid(type, uuid)
   t.is(metrics.length, metricsCompare.length, 'metrics length should be same metricsCompare.length')
   t.deepEqual(metrics, metricsCompare, 'metrics should be same metricsCompare')
