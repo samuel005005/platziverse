@@ -1,7 +1,8 @@
 'use strict'
 
 const debug = require('debug')('platziverse:web')
-const { handleFatalError } = require('platziverse-utils')
+const { handle } = require('platziverse-utils')
+const { handleFatalError } = handle
 const http = require('http')
 const path = require('path')
 const express = require('express')

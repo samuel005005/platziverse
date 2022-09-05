@@ -19,7 +19,7 @@ const options = {
   }
 }
 
-class PlaziverseAgent extends EventEmmiter {
+class PlatziverseAgent extends EventEmmiter {
   constructor (opts) {
     super()
     this._options = defaults(opts, options)
@@ -117,4 +117,4 @@ class PlaziverseAgent extends EventEmmiter {
   }
 }
 
-module.exports = PlaziverseAgent
+module.exports = PlatziverseAgent

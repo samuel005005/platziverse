@@ -103,8 +103,9 @@ aedes.on('publish', async (packet, client) => {
           })
         }
 
-        /// Store Metrics
-        await Promise.allSettled(payload.metrics
+        /// Store Metrics mode asynconos
+        await Promise.allSettled(
+          payload.metrics
           .map(
             async (metric) =>
               Metric.create(agent.uuid, metric)
@@ -126,7 +127,7 @@ aedes.on('publish', async (packet, client) => {
 })
 
 server.listen(settings.port, async () => {
-  const services = await db(config).catch(handleFatalError)
+  const services = await db(config.db).catch(handleFatalError)
 
   Agent = services.Agent
   Metric = services.Metric
