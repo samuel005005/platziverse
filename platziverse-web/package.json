@@ -24,12 +24,13 @@
     "standard": "^17.0.0"
   },
   "dependencies": {
+    "axios": "^0.27.2",
     "chalk": "^4.1.2",
     "cross-env": "^7.0.3",
     "debug": "^4.3.4",
     "express": "^4.18.1",
-    "platziverse-utils": "file:../platziverse-utils",
     "platziverse-agent": "file:../platziverse-agent",
+    "platziverse-utils": "file:../platziverse-utils",
     "socket.io": "^4.5.2"
   }
 }

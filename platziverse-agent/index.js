@@ -83,7 +83,7 @@ class PlatziverseAgent extends EventEmmiter {
             this._client.publish('agent/message', JSON.stringify(message))
             this.emit('message', message)
           }
-          this.emit('agent/message', 'this is a message')
+
         }, opts.interval)
       })
 
@@ -97,7 +97,6 @@ class PlatziverseAgent extends EventEmmiter {
             broadcast = payload && payload.agent && payload.agent.uuid !== this._agentId
             break
         }
-
         if (broadcast) {
           this.emit(topic, payload)
         }
