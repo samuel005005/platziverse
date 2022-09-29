@@ -1,5 +1,7 @@
 <template>
   <div>
+    <agent uuid="yyy"></agent>
+    <metric type="getRandomPromise" uuid="187dedf7-b939-47b9-b892-90b3615f6d13"></metric>
     <agent
       v-for="agent in agents"
       :uuid="agent.uuid"

@@ -24,6 +24,9 @@
   }
 </style>
 <script>
+const axios = require('axios').default;
+const moment = require('moment')
+const randomMaterialColor = require('random-material-color')
 const LineChart = require('./line-chart')
 
 module.exports = {
@@ -46,7 +49,43 @@ module.exports = {
   },
 
   methods: {
-    initialize() {
+   async initialize() {
+      const { uuid, type } = this
+      this.color = randomMaterialColor.getColor()
+      const options = {
+        method: 'GET',
+        url : `http://localhost:8080/metrics/${uuid}/${type}`,
+        json:true
+      }
+
+      let result
+
+      try {
+        result = await axios(options)
+      } catch (error) {
+        this.error = error.error.error
+        return
+      }
+   
+      const labels = []
+      const data = []
+      console.log(result)
+      if( Array.isArray(result.data) ){
+        result.data.forEach(m => {
+          
+          labels.push(moment(m.createdAt).format('HH:mm:ss'))
+          data.push(m.value)
+        })
+      }
+
+      this.datacollection = {
+        labels,
+        datasets: [{
+          backgroundColor: this.color,
+          label: type,
+          data
+        }]
+      }
     },
 
     handleError (err) {

@@ -94,6 +94,7 @@ module.exports = {
 
   methods: {
     initialize() {
+      
     },
 
     toggleMetrics() {

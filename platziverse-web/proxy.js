@@ -24,5 +24,49 @@ api.get('/agents', async (req, res, next) => {
         return next(error)
     }
 
-    res.send(result)
+    res.send(result.data)
 })
+
+api.get('/metrics/:uuid', async (req, res, next) => {
+    const { uuid } = req.params
+    const options = {
+        method: 'GET',
+        url: `${endpoint}/api/metrics/${uuid}`,
+        headers: {
+            'Authorization': `Bearer ${apiToken}`
+        },
+        json:true
+    }
+
+    let result
+
+    try {
+        result = await axios(options)
+    } catch (error) {
+        return next(new Error(e.error.error))
+    }
+    res.send(result.data)    
+})
+
+api.get('/metrics/:type/:uuid', async (req, res, next) => {
+    const { uuid, type } = req.params
+    const options = {
+        method: 'GET',
+        url: `${endpoint}/api/metrics/${uuid}/${type}`,
+        headers: {
+            'Authorization': `Bearer ${apiToken}`
+        },
+        json:true
+    }
+
+    let result
+
+    try {
+        result = await axios(options)
+    } catch (error) {
+        return next(new Error(e.error.error))
+    }
+    res.send(result.data)    
+})
+
+module.exports = api
