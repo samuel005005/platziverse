@@ -1,7 +1,10 @@
 <template>
   <div>
     <agent uuid="yyy"></agent>
-    <metric type="getRandomPromise" uuid="187dedf7-b939-47b9-b892-90b3615f6d13"></metric>
+    <metric 
+      type="callbackMetric"
+      uuid="a04b756b-1ede-43a1-94e9-1802fa4c174f"
+      :socket="socket"></metric>
     <agent
       v-for="agent in agents"
       :uuid="agent.uuid"
@@ -20,12 +23,15 @@
 </style>
 
 <script>
+const io = require( 'socket.io-client')
+const socket = io()
 
 module.exports = {
   data () {
     return {
       agents: [],
-      error: null
+      error: null,
+      socket
     }
   },
 

@@ -45,7 +45,7 @@ if (module.hot) {(function () {  var hotAPI = require("vue-hot-reload-api")
     hotAPI.reload("data-v-4b05cd5a", __vue__options__)
   }
 })()}
-},{"vue":52,"vue-hot-reload-api":50,"vueify/lib/insert-css":54}],2:[function(require,module,exports){
+},{"vue":84,"vue-hot-reload-api":82,"vueify/lib/insert-css":86}],2:[function(require,module,exports){
 'use strict';
 
 var Vue = require('vue');
@@ -64,16 +64,20 @@ var vm = new Vue({
   }
 });
 
-},{"./agent.vue":1,"./app.vue":3,"./metric.vue":5,"vue":52}],3:[function(require,module,exports){
+},{"./agent.vue":1,"./app.vue":3,"./metric.vue":5,"vue":84}],3:[function(require,module,exports){
 var __vueify_style_dispose__ = require("vueify/lib/insert-css").insert("body {\n  font-family: Arial;\n  background: #f8f8f8;\n  margin: 0;\n}")
 ;(function(){
-"use strict";
+'use strict';
+
+var io = require('socket.io-client');
+var socket = io();
 
 module.exports = {
   data: function data() {
     return {
       agents: [],
-      error: null
+      error: null,
+      socket: socket
     };
   },
   mounted: function mounted() {
@@ -89,7 +93,7 @@ module.exports = {
 if (module.exports.__esModule) module.exports = module.exports.default
 var __vue__options__ = (typeof module.exports === "function"? module.exports.options: module.exports)
 if (__vue__options__.functional) {console.error("[vueify] functional components are not supported and should be defined in plain js files using render functions.")}
-__vue__options__.render = function render () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('agent',{attrs:{"uuid":"yyy"}}),_vm._v(" "),_c('metric',{attrs:{"type":"getRandomPromise","uuid":"187dedf7-b939-47b9-b892-90b3615f6d13"}}),_vm._v(" "),_vm._l((_vm.agents),function(agent){return _c('agent',{key:agent.uuid,attrs:{"uuid":agent.uuid}})}),_vm._v(" "),(_vm.error)?_c('p',[_vm._v(_vm._s(_vm.error))]):_vm._e()],2)}
+__vue__options__.render = function render () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('agent',{attrs:{"uuid":"yyy"}}),_vm._v(" "),_c('metric',{attrs:{"type":"callbackMetric","uuid":"a04b756b-1ede-43a1-94e9-1802fa4c174f","socket":_vm.socket}}),_vm._v(" "),_vm._l((_vm.agents),function(agent){return _c('agent',{key:agent.uuid,attrs:{"uuid":agent.uuid}})}),_vm._v(" "),(_vm.error)?_c('p',[_vm._v(_vm._s(_vm.error))]):_vm._e()],2)}
 __vue__options__.staticRenderFns = []
 if (module.hot) {(function () {  var hotAPI = require("vue-hot-reload-api")
   hotAPI.install(require("vue"), true)
@@ -102,7 +106,7 @@ if (module.hot) {(function () {  var hotAPI = require("vue-hot-reload-api")
     hotAPI.reload("data-v-75f481b6", __vue__options__)
   }
 })()}
-},{"vue":52,"vue-hot-reload-api":50,"vueify/lib/insert-css":54}],4:[function(require,module,exports){
+},{"socket.io-client":72,"vue":84,"vue-hot-reload-api":82,"vueify/lib/insert-css":86}],4:[function(require,module,exports){
 'use strict';
 
 var _require = require('vue-chartjs'),
@@ -120,7 +124,7 @@ module.exports = Line.extend({
   }
 });
 
-},{"vue-chartjs":49}],5:[function(require,module,exports){
+},{"vue-chartjs":81}],5:[function(require,module,exports){
 var __vueify_style_dispose__ = require("vueify/lib/insert-css").insert(".metric {\n  border: 1px solid white;\n  margin: 0 auto;\n}\n.metric-type {\n  font-size: 28px;\n  font-weight: normal;\n  font-family: 'Roboto', sans-serif;\n}\ncanvas {\n  margin: 0 auto;\n}")
 ;(function(){
 'use strict';
@@ -135,7 +139,7 @@ module.exports = {
   components: {
     LineChart: LineChart
   },
-  props: ['uuid', 'type'],
+  props: ['uuid', 'type', 'socket'],
 
   data: function data() {
     return {
@@ -189,6 +193,46 @@ module.exports = {
           data: data
         }]
       };
+
+      this.startRealtime();
+    },
+    startRealtime: function startRealtime() {
+      var _this = this;
+
+      var uuid = this.uuid,
+          type = this.type,
+          socket = this.socket;
+
+      socket.on('agent/message', function (payload) {
+
+        if (payload.agent.uuid === uuid) {
+
+          var metrics = payload.metrics.find(function (m) {
+            return m.type === type;
+          });
+
+          var labels = _this.datacollection.labels;
+          var data = _this.datacollection.datasets[0].data;
+
+          var length = labels.length || data.length;
+          if (length >= 20) {
+            labels.shift();
+            data.shift();
+          }
+
+          labels.push(moment(metrics.createdAt).format('HH:mm:ss'));
+          data.push(metrics.value);
+
+          _this.datacollection = {
+            labels: labels,
+            datasets: [{
+              backgroundColor: _this.color,
+              label: type,
+              data: data
+            }]
+          };
+        }
+      });
     },
     handleError: function handleError(err) {
       this.error = err.message;
@@ -212,9 +256,187 @@ if (module.hot) {(function () {  var hotAPI = require("vue-hot-reload-api")
     hotAPI.reload("data-v-3a6bb5ab", __vue__options__)
   }
 })()}
-},{"./line-chart":4,"axios":6,"moment":42,"random-material-color":47,"vue":52,"vue-hot-reload-api":50,"vueify/lib/insert-css":54}],6:[function(require,module,exports){
+},{"./line-chart":4,"axios":7,"moment":65,"random-material-color":70,"vue":84,"vue-hot-reload-api":82,"vueify/lib/insert-css":86}],6:[function(require,module,exports){
+
+/**
+ * Expose `Emitter`.
+ */
+
+exports.Emitter = Emitter;
+
+/**
+ * Initialize a new `Emitter`.
+ *
+ * @api public
+ */
+
+function Emitter(obj) {
+  if (obj) return mixin(obj);
+}
+
+/**
+ * Mixin the emitter properties.
+ *
+ * @param {Object} obj
+ * @return {Object}
+ * @api private
+ */
+
+function mixin(obj) {
+  for (var key in Emitter.prototype) {
+    obj[key] = Emitter.prototype[key];
+  }
+  return obj;
+}
+
+/**
+ * Listen on the given `event` with `fn`.
+ *
+ * @param {String} event
+ * @param {Function} fn
+ * @return {Emitter}
+ * @api public
+ */
+
+Emitter.prototype.on =
+Emitter.prototype.addEventListener = function(event, fn){
+  this._callbacks = this._callbacks || {};
+  (this._callbacks['$' + event] = this._callbacks['$' + event] || [])
+    .push(fn);
+  return this;
+};
+
+/**
+ * Adds an `event` listener that will be invoked a single
+ * time then automatically removed.
+ *
+ * @param {String} event
+ * @param {Function} fn
+ * @return {Emitter}
+ * @api public
+ */
+
+Emitter.prototype.once = function(event, fn){
+  function on() {
+    this.off(event, on);
+    fn.apply(this, arguments);
+  }
+
+  on.fn = fn;
+  this.on(event, on);
+  return this;
+};
+
+/**
+ * Remove the given callback for `event` or all
+ * registered callbacks.
+ *
+ * @param {String} event
+ * @param {Function} fn
+ * @return {Emitter}
+ * @api public
+ */
+
+Emitter.prototype.off =
+Emitter.prototype.removeListener =
+Emitter.prototype.removeAllListeners =
+Emitter.prototype.removeEventListener = function(event, fn){
+  this._callbacks = this._callbacks || {};
+
+  // all
+  if (0 == arguments.length) {
+    this._callbacks = {};
+    return this;
+  }
+
+  // specific event
+  var callbacks = this._callbacks['$' + event];
+  if (!callbacks) return this;
+
+  // remove all handlers
+  if (1 == arguments.length) {
+    delete this._callbacks['$' + event];
+    return this;
+  }
+
+  // remove specific handler
+  var cb;
+  for (var i = 0; i < callbacks.length; i++) {
+    cb = callbacks[i];
+    if (cb === fn || cb.fn === fn) {
+      callbacks.splice(i, 1);
+      break;
+    }
+  }
+
+  // Remove event specific arrays for event types that no
+  // one is subscribed for to avoid memory leak.
+  if (callbacks.length === 0) {
+    delete this._callbacks['$' + event];
+  }
+
+  return this;
+};
+
+/**
+ * Emit `event` with the given args.
+ *
+ * @param {String} event
+ * @param {Mixed} ...
+ * @return {Emitter}
+ */
+
+Emitter.prototype.emit = function(event){
+  this._callbacks = this._callbacks || {};
+
+  var args = new Array(arguments.length - 1)
+    , callbacks = this._callbacks['$' + event];
+
+  for (var i = 1; i < arguments.length; i++) {
+    args[i - 1] = arguments[i];
+  }
+
+  if (callbacks) {
+    callbacks = callbacks.slice(0);
+    for (var i = 0, len = callbacks.length; i < len; ++i) {
+      callbacks[i].apply(this, args);
+    }
+  }
+
+  return this;
+};
+
+// alias used for reserved events (protected method)
+Emitter.prototype.emitReserved = Emitter.prototype.emit;
+
+/**
+ * Return array of callbacks for `event`.
+ *
+ * @param {String} event
+ * @return {Array}
+ * @api public
+ */
+
+Emitter.prototype.listeners = function(event){
+  this._callbacks = this._callbacks || {};
+  return this._callbacks['$' + event] || [];
+};
+
+/**
+ * Check if this emitter has `event` handlers.
+ *
+ * @param {String} event
+ * @return {Boolean}
+ * @api public
+ */
+
+Emitter.prototype.hasListeners = function(event){
+  return !! this.listeners(event).length;
+};
+
+},{}],7:[function(require,module,exports){
 module.exports = require('./lib/axios');
-},{"./lib/axios":8}],7:[function(require,module,exports){
+},{"./lib/axios":9}],8:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -438,7 +660,7 @@ module.exports = function xhrAdapter(config) {
   });
 };
 
-},{"../cancel/CanceledError":10,"../core/AxiosError":13,"../core/buildFullPath":15,"../defaults/transitional":21,"../helpers/parseProtocol":33,"./../core/settle":18,"./../helpers/buildURL":24,"./../helpers/cookies":26,"./../helpers/isURLSameOrigin":29,"./../helpers/parseHeaders":32,"./../utils":37}],8:[function(require,module,exports){
+},{"../cancel/CanceledError":11,"../core/AxiosError":14,"../core/buildFullPath":16,"../defaults/transitional":22,"../helpers/parseProtocol":34,"./../core/settle":19,"./../helpers/buildURL":25,"./../helpers/cookies":27,"./../helpers/isURLSameOrigin":30,"./../helpers/parseHeaders":33,"./../utils":38}],9:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -504,7 +726,7 @@ module.exports = axios;
 // Allow use of default import syntax in TypeScript
 module.exports.default = axios;
 
-},{"../lib/core/AxiosError":13,"./cancel/CancelToken":9,"./cancel/CanceledError":10,"./cancel/isCancel":11,"./core/Axios":12,"./core/mergeConfig":17,"./defaults":20,"./env/data":22,"./helpers/bind":23,"./helpers/isAxiosError":28,"./helpers/spread":34,"./helpers/toFormData":35,"./utils":37}],9:[function(require,module,exports){
+},{"../lib/core/AxiosError":14,"./cancel/CancelToken":10,"./cancel/CanceledError":11,"./cancel/isCancel":12,"./core/Axios":13,"./core/mergeConfig":18,"./defaults":21,"./env/data":23,"./helpers/bind":24,"./helpers/isAxiosError":29,"./helpers/spread":35,"./helpers/toFormData":36,"./utils":38}],10:[function(require,module,exports){
 'use strict';
 
 var CanceledError = require('./CanceledError');
@@ -625,7 +847,7 @@ CancelToken.source = function source() {
 
 module.exports = CancelToken;
 
-},{"./CanceledError":10}],10:[function(require,module,exports){
+},{"./CanceledError":11}],11:[function(require,module,exports){
 'use strict';
 
 var AxiosError = require('../core/AxiosError');
@@ -649,14 +871,14 @@ utils.inherits(CanceledError, AxiosError, {
 
 module.exports = CanceledError;
 
-},{"../core/AxiosError":13,"../utils":37}],11:[function(require,module,exports){
+},{"../core/AxiosError":14,"../utils":38}],12:[function(require,module,exports){
 'use strict';
 
 module.exports = function isCancel(value) {
   return !!(value && value.__CANCEL__);
 };
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -818,7 +1040,7 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 
 module.exports = Axios;
 
-},{"../helpers/buildURL":24,"../helpers/validator":36,"./../utils":37,"./InterceptorManager":14,"./buildFullPath":15,"./dispatchRequest":16,"./mergeConfig":17}],13:[function(require,module,exports){
+},{"../helpers/buildURL":25,"../helpers/validator":37,"./../utils":38,"./InterceptorManager":15,"./buildFullPath":16,"./dispatchRequest":17,"./mergeConfig":18}],14:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -906,7 +1128,7 @@ AxiosError.from = function(error, code, config, request, response, customProps) 
 
 module.exports = AxiosError;
 
-},{"../utils":37}],14:[function(require,module,exports){
+},{"../utils":38}],15:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -962,7 +1184,7 @@ InterceptorManager.prototype.forEach = function forEach(fn) {
 
 module.exports = InterceptorManager;
 
-},{"./../utils":37}],15:[function(require,module,exports){
+},{"./../utils":38}],16:[function(require,module,exports){
 'use strict';
 
 var isAbsoluteURL = require('../helpers/isAbsoluteURL');
@@ -984,7 +1206,7 @@ module.exports = function buildFullPath(baseURL, requestedURL) {
   return requestedURL;
 };
 
-},{"../helpers/combineURLs":25,"../helpers/isAbsoluteURL":27}],16:[function(require,module,exports){
+},{"../helpers/combineURLs":26,"../helpers/isAbsoluteURL":28}],17:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1073,7 +1295,7 @@ module.exports = function dispatchRequest(config) {
   });
 };
 
-},{"../cancel/CanceledError":10,"../cancel/isCancel":11,"../defaults":20,"./../utils":37,"./transformData":19}],17:[function(require,module,exports){
+},{"../cancel/CanceledError":11,"../cancel/isCancel":12,"../defaults":21,"./../utils":38,"./transformData":20}],18:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -1175,7 +1397,7 @@ module.exports = function mergeConfig(config1, config2) {
   return config;
 };
 
-},{"../utils":37}],18:[function(require,module,exports){
+},{"../utils":38}],19:[function(require,module,exports){
 'use strict';
 
 var AxiosError = require('./AxiosError');
@@ -1202,7 +1424,7 @@ module.exports = function settle(resolve, reject, response) {
   }
 };
 
-},{"./AxiosError":13}],19:[function(require,module,exports){
+},{"./AxiosError":14}],20:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1226,7 +1448,7 @@ module.exports = function transformData(data, headers, fns) {
   return data;
 };
 
-},{"../defaults":20,"./../utils":37}],20:[function(require,module,exports){
+},{"../defaults":21,"./../utils":38}],21:[function(require,module,exports){
 (function (process){(function (){
 'use strict';
 
@@ -1376,7 +1598,7 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
 module.exports = defaults;
 
 }).call(this)}).call(this,require('_process'))
-},{"../adapters/http":7,"../adapters/xhr":7,"../core/AxiosError":13,"../helpers/normalizeHeaderName":30,"../helpers/toFormData":35,"../utils":37,"./env/FormData":31,"./transitional":21,"_process":46}],21:[function(require,module,exports){
+},{"../adapters/http":8,"../adapters/xhr":8,"../core/AxiosError":14,"../helpers/normalizeHeaderName":31,"../helpers/toFormData":36,"../utils":38,"./env/FormData":32,"./transitional":22,"_process":69}],22:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -1385,11 +1607,11 @@ module.exports = {
   clarifyTimeoutError: false
 };
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports = {
   "version": "0.27.2"
 };
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 'use strict';
 
 module.exports = function bind(fn, thisArg) {
@@ -1402,7 +1624,7 @@ module.exports = function bind(fn, thisArg) {
   };
 };
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1474,7 +1696,7 @@ module.exports = function buildURL(url, params, paramsSerializer) {
   return url;
 };
 
-},{"./../utils":37}],25:[function(require,module,exports){
+},{"./../utils":38}],26:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1490,7 +1712,7 @@ module.exports = function combineURLs(baseURL, relativeURL) {
     : baseURL;
 };
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1545,7 +1767,7 @@ module.exports = (
     })()
 );
 
-},{"./../utils":37}],27:[function(require,module,exports){
+},{"./../utils":38}],28:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1561,7 +1783,7 @@ module.exports = function isAbsoluteURL(url) {
   return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
 };
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1576,7 +1798,7 @@ module.exports = function isAxiosError(payload) {
   return utils.isObject(payload) && (payload.isAxiosError === true);
 };
 
-},{"./../utils":37}],29:[function(require,module,exports){
+},{"./../utils":38}],30:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1646,7 +1868,7 @@ module.exports = (
     })()
 );
 
-},{"./../utils":37}],30:[function(require,module,exports){
+},{"./../utils":38}],31:[function(require,module,exports){
 'use strict';
 
 var utils = require('../utils');
@@ -1660,11 +1882,11 @@ module.exports = function normalizeHeaderName(headers, normalizedName) {
   });
 };
 
-},{"../utils":37}],31:[function(require,module,exports){
+},{"../utils":38}],32:[function(require,module,exports){
 // eslint-disable-next-line strict
 module.exports = null;
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict';
 
 var utils = require('./../utils');
@@ -1719,7 +1941,7 @@ module.exports = function parseHeaders(headers) {
   return parsed;
 };
 
-},{"./../utils":37}],33:[function(require,module,exports){
+},{"./../utils":38}],34:[function(require,module,exports){
 'use strict';
 
 module.exports = function parseProtocol(url) {
@@ -1727,7 +1949,7 @@ module.exports = function parseProtocol(url) {
   return match && match[1] || '';
 };
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 /**
@@ -1756,7 +1978,7 @@ module.exports = function spread(callback) {
   };
 };
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 (function (Buffer){(function (){
 'use strict';
 
@@ -1832,7 +2054,7 @@ function toFormData(obj, formData) {
 module.exports = toFormData;
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"../utils":37,"buffer":39}],36:[function(require,module,exports){
+},{"../utils":38,"buffer":40}],37:[function(require,module,exports){
 'use strict';
 
 var VERSION = require('../env/data').version;
@@ -1920,7 +2142,7 @@ module.exports = {
   validators: validators
 };
 
-},{"../core/AxiosError":13,"../env/data":22}],37:[function(require,module,exports){
+},{"../core/AxiosError":14,"../env/data":23}],38:[function(require,module,exports){
 'use strict';
 
 var bind = require('./helpers/bind');
@@ -2392,7 +2614,7 @@ module.exports = {
   isFileList: isFileList
 };
 
-},{"./helpers/bind":23}],38:[function(require,module,exports){
+},{"./helpers/bind":24}],39:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -2544,7 +2766,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 (function (Buffer){(function (){
 /*!
  * The buffer module from node.js, for the browser.
@@ -4365,7 +4587,7 @@ var hexSliceLookupTable = (function () {
 })()
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"base64-js":38,"buffer":39,"ieee754":41}],40:[function(require,module,exports){
+},{"base64-js":39,"buffer":40,"ieee754":64}],41:[function(require,module,exports){
 /*!
  * Chart.js v2.9.4
  * https://www.chartjs.org
@@ -20539,7 +20761,2615 @@ return src;
 
 })));
 
-},{"moment":42}],41:[function(require,module,exports){
+},{"moment":65}],42:[function(require,module,exports){
+/**
+ * Helpers.
+ */
+
+var s = 1000;
+var m = s * 60;
+var h = m * 60;
+var d = h * 24;
+var w = d * 7;
+var y = d * 365.25;
+
+/**
+ * Parse or format the given `val`.
+ *
+ * Options:
+ *
+ *  - `long` verbose formatting [false]
+ *
+ * @param {String|Number} val
+ * @param {Object} [options]
+ * @throws {Error} throw an error if val is not a non-empty string or a number
+ * @return {String|Number}
+ * @api public
+ */
+
+module.exports = function(val, options) {
+  options = options || {};
+  var type = typeof val;
+  if (type === 'string' && val.length > 0) {
+    return parse(val);
+  } else if (type === 'number' && isFinite(val)) {
+    return options.long ? fmtLong(val) : fmtShort(val);
+  }
+  throw new Error(
+    'val is not a non-empty string or a valid number. val=' +
+      JSON.stringify(val)
+  );
+};
+
+/**
+ * Parse the given `str` and return milliseconds.
+ *
+ * @param {String} str
+ * @return {Number}
+ * @api private
+ */
+
+function parse(str) {
+  str = String(str);
+  if (str.length > 100) {
+    return;
+  }
+  var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+    str
+  );
+  if (!match) {
+    return;
+  }
+  var n = parseFloat(match[1]);
+  var type = (match[2] || 'ms').toLowerCase();
+  switch (type) {
+    case 'years':
+    case 'year':
+    case 'yrs':
+    case 'yr':
+    case 'y':
+      return n * y;
+    case 'weeks':
+    case 'week':
+    case 'w':
+      return n * w;
+    case 'days':
+    case 'day':
+    case 'd':
+      return n * d;
+    case 'hours':
+    case 'hour':
+    case 'hrs':
+    case 'hr':
+    case 'h':
+      return n * h;
+    case 'minutes':
+    case 'minute':
+    case 'mins':
+    case 'min':
+    case 'm':
+      return n * m;
+    case 'seconds':
+    case 'second':
+    case 'secs':
+    case 'sec':
+    case 's':
+      return n * s;
+    case 'milliseconds':
+    case 'millisecond':
+    case 'msecs':
+    case 'msec':
+    case 'ms':
+      return n;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Short format for `ms`.
+ *
+ * @param {Number} ms
+ * @return {String}
+ * @api private
+ */
+
+function fmtShort(ms) {
+  var msAbs = Math.abs(ms);
+  if (msAbs >= d) {
+    return Math.round(ms / d) + 'd';
+  }
+  if (msAbs >= h) {
+    return Math.round(ms / h) + 'h';
+  }
+  if (msAbs >= m) {
+    return Math.round(ms / m) + 'm';
+  }
+  if (msAbs >= s) {
+    return Math.round(ms / s) + 's';
+  }
+  return ms + 'ms';
+}
+
+/**
+ * Long format for `ms`.
+ *
+ * @param {Number} ms
+ * @return {String}
+ * @api private
+ */
+
+function fmtLong(ms) {
+  var msAbs = Math.abs(ms);
+  if (msAbs >= d) {
+    return plural(ms, msAbs, d, 'day');
+  }
+  if (msAbs >= h) {
+    return plural(ms, msAbs, h, 'hour');
+  }
+  if (msAbs >= m) {
+    return plural(ms, msAbs, m, 'minute');
+  }
+  if (msAbs >= s) {
+    return plural(ms, msAbs, s, 'second');
+  }
+  return ms + ' ms';
+}
+
+/**
+ * Pluralization helper.
+ */
+
+function plural(ms, msAbs, n, name) {
+  var isPlural = msAbs >= n * 1.5;
+  return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
+}
+
+},{}],43:[function(require,module,exports){
+(function (process){(function (){
+/* eslint-env browser */
+
+/**
+ * This is the web browser implementation of `debug()`.
+ */
+
+exports.formatArgs = formatArgs;
+exports.save = save;
+exports.load = load;
+exports.useColors = useColors;
+exports.storage = localstorage();
+exports.destroy = (() => {
+	let warned = false;
+
+	return () => {
+		if (!warned) {
+			warned = true;
+			console.warn('Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.');
+		}
+	};
+})();
+
+/**
+ * Colors.
+ */
+
+exports.colors = [
+	'#0000CC',
+	'#0000FF',
+	'#0033CC',
+	'#0033FF',
+	'#0066CC',
+	'#0066FF',
+	'#0099CC',
+	'#0099FF',
+	'#00CC00',
+	'#00CC33',
+	'#00CC66',
+	'#00CC99',
+	'#00CCCC',
+	'#00CCFF',
+	'#3300CC',
+	'#3300FF',
+	'#3333CC',
+	'#3333FF',
+	'#3366CC',
+	'#3366FF',
+	'#3399CC',
+	'#3399FF',
+	'#33CC00',
+	'#33CC33',
+	'#33CC66',
+	'#33CC99',
+	'#33CCCC',
+	'#33CCFF',
+	'#6600CC',
+	'#6600FF',
+	'#6633CC',
+	'#6633FF',
+	'#66CC00',
+	'#66CC33',
+	'#9900CC',
+	'#9900FF',
+	'#9933CC',
+	'#9933FF',
+	'#99CC00',
+	'#99CC33',
+	'#CC0000',
+	'#CC0033',
+	'#CC0066',
+	'#CC0099',
+	'#CC00CC',
+	'#CC00FF',
+	'#CC3300',
+	'#CC3333',
+	'#CC3366',
+	'#CC3399',
+	'#CC33CC',
+	'#CC33FF',
+	'#CC6600',
+	'#CC6633',
+	'#CC9900',
+	'#CC9933',
+	'#CCCC00',
+	'#CCCC33',
+	'#FF0000',
+	'#FF0033',
+	'#FF0066',
+	'#FF0099',
+	'#FF00CC',
+	'#FF00FF',
+	'#FF3300',
+	'#FF3333',
+	'#FF3366',
+	'#FF3399',
+	'#FF33CC',
+	'#FF33FF',
+	'#FF6600',
+	'#FF6633',
+	'#FF9900',
+	'#FF9933',
+	'#FFCC00',
+	'#FFCC33'
+];
+
+/**
+ * Currently only WebKit-based Web Inspectors, Firefox >= v31,
+ * and the Firebug extension (any Firefox version) are known
+ * to support "%c" CSS customizations.
+ *
+ * TODO: add a `localStorage` variable to explicitly enable/disable colors
+ */
+
+// eslint-disable-next-line complexity
+function useColors() {
+	// NB: In an Electron preload script, document will be defined but not fully
+	// initialized. Since we know we're in Chrome, we'll just detect this case
+	// explicitly
+	if (typeof window !== 'undefined' && window.process && (window.process.type === 'renderer' || window.process.__nwjs)) {
+		return true;
+	}
+
+	// Internet Explorer and Edge do not support colors.
+	if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+		return false;
+	}
+
+	// Is webkit? http://stackoverflow.com/a/16459606/376773
+	// document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
+	return (typeof document !== 'undefined' && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance) ||
+		// Is firebug? http://stackoverflow.com/a/398120/376773
+		(typeof window !== 'undefined' && window.console && (window.console.firebug || (window.console.exception && window.console.table))) ||
+		// Is firefox >= v31?
+		// https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+		(typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31) ||
+		// Double check webkit in userAgent just in case we are in a worker
+		(typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/));
+}
+
+/**
+ * Colorize log arguments if enabled.
+ *
+ * @api public
+ */
+
+function formatArgs(args) {
+	args[0] = (this.useColors ? '%c' : '') +
+		this.namespace +
+		(this.useColors ? ' %c' : ' ') +
+		args[0] +
+		(this.useColors ? '%c ' : ' ') +
+		'+' + module.exports.humanize(this.diff);
+
+	if (!this.useColors) {
+		return;
+	}
+
+	const c = 'color: ' + this.color;
+	args.splice(1, 0, c, 'color: inherit');
+
+	// The final "%c" is somewhat tricky, because there could be other
+	// arguments passed either before or after the %c, so we need to
+	// figure out the correct index to insert the CSS into
+	let index = 0;
+	let lastC = 0;
+	args[0].replace(/%[a-zA-Z%]/g, match => {
+		if (match === '%%') {
+			return;
+		}
+		index++;
+		if (match === '%c') {
+			// We only are interested in the *last* %c
+			// (the user may have provided their own)
+			lastC = index;
+		}
+	});
+
+	args.splice(lastC, 0, c);
+}
+
+/**
+ * Invokes `console.debug()` when available.
+ * No-op when `console.debug` is not a "function".
+ * If `console.debug` is not available, falls back
+ * to `console.log`.
+ *
+ * @api public
+ */
+exports.log = console.debug || console.log || (() => {});
+
+/**
+ * Save `namespaces`.
+ *
+ * @param {String} namespaces
+ * @api private
+ */
+function save(namespaces) {
+	try {
+		if (namespaces) {
+			exports.storage.setItem('debug', namespaces);
+		} else {
+			exports.storage.removeItem('debug');
+		}
+	} catch (error) {
+		// Swallow
+		// XXX (@Qix-) should we be logging these?
+	}
+}
+
+/**
+ * Load `namespaces`.
+ *
+ * @return {String} returns the previously persisted debug modes
+ * @api private
+ */
+function load() {
+	let r;
+	try {
+		r = exports.storage.getItem('debug');
+	} catch (error) {
+		// Swallow
+		// XXX (@Qix-) should we be logging these?
+	}
+
+	// If debug isn't set in LS, and we're in Electron, try to load $DEBUG
+	if (!r && typeof process !== 'undefined' && 'env' in process) {
+		r = process.env.DEBUG;
+	}
+
+	return r;
+}
+
+/**
+ * Localstorage attempts to return the localstorage.
+ *
+ * This is necessary because safari throws
+ * when a user disables cookies/localstorage
+ * and you attempt to access it.
+ *
+ * @return {LocalStorage}
+ * @api private
+ */
+
+function localstorage() {
+	try {
+		// TVMLKit (Apple TV JS Runtime) does not have a window object, just localStorage in the global context
+		// The Browser also has localStorage in the global context.
+		return localStorage;
+	} catch (error) {
+		// Swallow
+		// XXX (@Qix-) should we be logging these?
+	}
+}
+
+module.exports = require('./common')(exports);
+
+const {formatters} = module.exports;
+
+/**
+ * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
+ */
+
+formatters.j = function (v) {
+	try {
+		return JSON.stringify(v);
+	} catch (error) {
+		return '[UnexpectedJSONParseError]: ' + error.message;
+	}
+};
+
+}).call(this)}).call(this,require('_process'))
+},{"./common":44,"_process":69}],44:[function(require,module,exports){
+
+/**
+ * This is the common logic for both the Node.js and web browser
+ * implementations of `debug()`.
+ */
+
+function setup(env) {
+	createDebug.debug = createDebug;
+	createDebug.default = createDebug;
+	createDebug.coerce = coerce;
+	createDebug.disable = disable;
+	createDebug.enable = enable;
+	createDebug.enabled = enabled;
+	createDebug.humanize = require('ms');
+	createDebug.destroy = destroy;
+
+	Object.keys(env).forEach(key => {
+		createDebug[key] = env[key];
+	});
+
+	/**
+	* The currently active debug mode names, and names to skip.
+	*/
+
+	createDebug.names = [];
+	createDebug.skips = [];
+
+	/**
+	* Map of special "%n" handling functions, for the debug "format" argument.
+	*
+	* Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
+	*/
+	createDebug.formatters = {};
+
+	/**
+	* Selects a color for a debug namespace
+	* @param {String} namespace The namespace string for the debug instance to be colored
+	* @return {Number|String} An ANSI color code for the given namespace
+	* @api private
+	*/
+	function selectColor(namespace) {
+		let hash = 0;
+
+		for (let i = 0; i < namespace.length; i++) {
+			hash = ((hash << 5) - hash) + namespace.charCodeAt(i);
+			hash |= 0; // Convert to 32bit integer
+		}
+
+		return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
+	}
+	createDebug.selectColor = selectColor;
+
+	/**
+	* Create a debugger with the given `namespace`.
+	*
+	* @param {String} namespace
+	* @return {Function}
+	* @api public
+	*/
+	function createDebug(namespace) {
+		let prevTime;
+		let enableOverride = null;
+		let namespacesCache;
+		let enabledCache;
+
+		function debug(...args) {
+			// Disabled?
+			if (!debug.enabled) {
+				return;
+			}
+
+			const self = debug;
+
+			// Set `diff` timestamp
+			const curr = Number(new Date());
+			const ms = curr - (prevTime || curr);
+			self.diff = ms;
+			self.prev = prevTime;
+			self.curr = curr;
+			prevTime = curr;
+
+			args[0] = createDebug.coerce(args[0]);
+
+			if (typeof args[0] !== 'string') {
+				// Anything else let's inspect with %O
+				args.unshift('%O');
+			}
+
+			// Apply any `formatters` transformations
+			let index = 0;
+			args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
+				// If we encounter an escaped % then don't increase the array index
+				if (match === '%%') {
+					return '%';
+				}
+				index++;
+				const formatter = createDebug.formatters[format];
+				if (typeof formatter === 'function') {
+					const val = args[index];
+					match = formatter.call(self, val);
+
+					// Now we need to remove `args[index]` since it's inlined in the `format`
+					args.splice(index, 1);
+					index--;
+				}
+				return match;
+			});
+
+			// Apply env-specific formatting (colors, etc.)
+			createDebug.formatArgs.call(self, args);
+
+			const logFn = self.log || createDebug.log;
+			logFn.apply(self, args);
+		}
+
+		debug.namespace = namespace;
+		debug.useColors = createDebug.useColors();
+		debug.color = createDebug.selectColor(namespace);
+		debug.extend = extend;
+		debug.destroy = createDebug.destroy; // XXX Temporary. Will be removed in the next major release.
+
+		Object.defineProperty(debug, 'enabled', {
+			enumerable: true,
+			configurable: false,
+			get: () => {
+				if (enableOverride !== null) {
+					return enableOverride;
+				}
+				if (namespacesCache !== createDebug.namespaces) {
+					namespacesCache = createDebug.namespaces;
+					enabledCache = createDebug.enabled(namespace);
+				}
+
+				return enabledCache;
+			},
+			set: v => {
+				enableOverride = v;
+			}
+		});
+
+		// Env-specific initialization logic for debug instances
+		if (typeof createDebug.init === 'function') {
+			createDebug.init(debug);
+		}
+
+		return debug;
+	}
+
+	function extend(namespace, delimiter) {
+		const newDebug = createDebug(this.namespace + (typeof delimiter === 'undefined' ? ':' : delimiter) + namespace);
+		newDebug.log = this.log;
+		return newDebug;
+	}
+
+	/**
+	* Enables a debug mode by namespaces. This can include modes
+	* separated by a colon and wildcards.
+	*
+	* @param {String} namespaces
+	* @api public
+	*/
+	function enable(namespaces) {
+		createDebug.save(namespaces);
+		createDebug.namespaces = namespaces;
+
+		createDebug.names = [];
+		createDebug.skips = [];
+
+		let i;
+		const split = (typeof namespaces === 'string' ? namespaces : '').split(/[\s,]+/);
+		const len = split.length;
+
+		for (i = 0; i < len; i++) {
+			if (!split[i]) {
+				// ignore empty strings
+				continue;
+			}
+
+			namespaces = split[i].replace(/\*/g, '.*?');
+
+			if (namespaces[0] === '-') {
+				createDebug.skips.push(new RegExp('^' + namespaces.slice(1) + '$'));
+			} else {
+				createDebug.names.push(new RegExp('^' + namespaces + '$'));
+			}
+		}
+	}
+
+	/**
+	* Disable debug output.
+	*
+	* @return {String} namespaces
+	* @api public
+	*/
+	function disable() {
+		const namespaces = [
+			...createDebug.names.map(toNamespace),
+			...createDebug.skips.map(toNamespace).map(namespace => '-' + namespace)
+		].join(',');
+		createDebug.enable('');
+		return namespaces;
+	}
+
+	/**
+	* Returns true if the given mode name is enabled, false otherwise.
+	*
+	* @param {String} name
+	* @return {Boolean}
+	* @api public
+	*/
+	function enabled(name) {
+		if (name[name.length - 1] === '*') {
+			return true;
+		}
+
+		let i;
+		let len;
+
+		for (i = 0, len = createDebug.skips.length; i < len; i++) {
+			if (createDebug.skips[i].test(name)) {
+				return false;
+			}
+		}
+
+		for (i = 0, len = createDebug.names.length; i < len; i++) {
+			if (createDebug.names[i].test(name)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	* Convert regexp to namespace
+	*
+	* @param {RegExp} regxep
+	* @return {String} namespace
+	* @api private
+	*/
+	function toNamespace(regexp) {
+		return regexp.toString()
+			.substring(2, regexp.toString().length - 2)
+			.replace(/\.\*\?$/, '*');
+	}
+
+	/**
+	* Coerce `val`.
+	*
+	* @param {Mixed} val
+	* @return {Mixed}
+	* @api private
+	*/
+	function coerce(val) {
+		if (val instanceof Error) {
+			return val.stack || val.message;
+		}
+		return val;
+	}
+
+	/**
+	* XXX DO NOT USE. This is a temporary stub function.
+	* XXX It WILL be removed in the next major release.
+	*/
+	function destroy() {
+		console.warn('Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.');
+	}
+
+	createDebug.enable(createDebug.load());
+
+	return createDebug;
+}
+
+module.exports = setup;
+
+},{"ms":42}],45:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.hasCORS = void 0;
+// imported from https://github.com/component/has-cors
+let value = false;
+try {
+    value = typeof XMLHttpRequest !== 'undefined' &&
+        'withCredentials' in new XMLHttpRequest();
+}
+catch (err) {
+    // if XMLHttp support is disabled in IE then it will throw
+    // when trying to create
+}
+exports.hasCORS = value;
+
+},{}],46:[function(require,module,exports){
+"use strict";
+// imported from https://github.com/galkn/querystring
+/**
+ * Compiles a querystring
+ * Returns string representation of the object
+ *
+ * @param {Object}
+ * @api private
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.decode = exports.encode = void 0;
+function encode(obj) {
+    let str = '';
+    for (let i in obj) {
+        if (obj.hasOwnProperty(i)) {
+            if (str.length)
+                str += '&';
+            str += encodeURIComponent(i) + '=' + encodeURIComponent(obj[i]);
+        }
+    }
+    return str;
+}
+exports.encode = encode;
+/**
+ * Parses a simple querystring into an object
+ *
+ * @param {String} qs
+ * @api private
+ */
+function decode(qs) {
+    let qry = {};
+    let pairs = qs.split('&');
+    for (let i = 0, l = pairs.length; i < l; i++) {
+        let pair = pairs[i].split('=');
+        qry[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+    }
+    return qry;
+}
+exports.decode = decode;
+
+},{}],47:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parse = void 0;
+// imported from https://github.com/galkn/parseuri
+/**
+ * Parses an URI
+ *
+ * @author Steven Levithan <stevenlevithan.com> (MIT license)
+ * @api private
+ */
+const re = /^(?:(?![^:@]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+const parts = [
+    'source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'anchor'
+];
+function parse(str) {
+    const src = str, b = str.indexOf('['), e = str.indexOf(']');
+    if (b != -1 && e != -1) {
+        str = str.substring(0, b) + str.substring(b, e).replace(/:/g, ';') + str.substring(e, str.length);
+    }
+    let m = re.exec(str || ''), uri = {}, i = 14;
+    while (i--) {
+        uri[parts[i]] = m[i] || '';
+    }
+    if (b != -1 && e != -1) {
+        uri.source = src;
+        uri.host = uri.host.substring(1, uri.host.length - 1).replace(/;/g, ':');
+        uri.authority = uri.authority.replace('[', '').replace(']', '').replace(/;/g, ':');
+        uri.ipv6uri = true;
+    }
+    uri.pathNames = pathNames(uri, uri['path']);
+    uri.queryKey = queryKey(uri, uri['query']);
+    return uri;
+}
+exports.parse = parse;
+function pathNames(obj, path) {
+    const regx = /\/{2,9}/g, names = path.replace(regx, "/").split("/");
+    if (path.substr(0, 1) == '/' || path.length === 0) {
+        names.splice(0, 1);
+    }
+    if (path.substr(path.length - 1, 1) == '/') {
+        names.splice(names.length - 1, 1);
+    }
+    return names;
+}
+function queryKey(uri, query) {
+    const data = {};
+    query.replace(/(?:^|&)([^&=]*)=?([^&]*)/g, function ($0, $1, $2) {
+        if ($1) {
+            data[$1] = $2;
+        }
+    });
+    return data;
+}
+
+},{}],48:[function(require,module,exports){
+// imported from https://github.com/unshiftio/yeast
+'use strict';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.yeast = exports.decode = exports.encode = void 0;
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split(''), length = 64, map = {};
+let seed = 0, i = 0, prev;
+/**
+ * Return a string representing the specified number.
+ *
+ * @param {Number} num The number to convert.
+ * @returns {String} The string representation of the number.
+ * @api public
+ */
+function encode(num) {
+    let encoded = '';
+    do {
+        encoded = alphabet[num % length] + encoded;
+        num = Math.floor(num / length);
+    } while (num > 0);
+    return encoded;
+}
+exports.encode = encode;
+/**
+ * Return the integer value specified by the given string.
+ *
+ * @param {String} str The string to convert.
+ * @returns {Number} The integer value represented by the string.
+ * @api public
+ */
+function decode(str) {
+    let decoded = 0;
+    for (i = 0; i < str.length; i++) {
+        decoded = decoded * length + map[str.charAt(i)];
+    }
+    return decoded;
+}
+exports.decode = decode;
+/**
+ * Yeast: A tiny growing id generator.
+ *
+ * @returns {String} A unique id.
+ * @api public
+ */
+function yeast() {
+    const now = encode(+new Date());
+    if (now !== prev)
+        return seed = 0, prev = now;
+    return now + '.' + encode(seed++);
+}
+exports.yeast = yeast;
+//
+// Map each character to its index.
+//
+for (; i < length; i++)
+    map[alphabet[i]] = i;
+
+},{}],49:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.globalThisShim = void 0;
+exports.globalThisShim = (() => {
+    if (typeof self !== "undefined") {
+        return self;
+    }
+    else if (typeof window !== "undefined") {
+        return window;
+    }
+    else {
+        return Function("return this")();
+    }
+})();
+
+},{}],50:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parse = exports.installTimerFunctions = exports.transports = exports.Transport = exports.protocol = exports.Socket = void 0;
+const socket_js_1 = require("./socket.js");
+Object.defineProperty(exports, "Socket", { enumerable: true, get: function () { return socket_js_1.Socket; } });
+exports.protocol = socket_js_1.Socket.protocol;
+var transport_js_1 = require("./transport.js");
+Object.defineProperty(exports, "Transport", { enumerable: true, get: function () { return transport_js_1.Transport; } });
+var index_js_1 = require("./transports/index.js");
+Object.defineProperty(exports, "transports", { enumerable: true, get: function () { return index_js_1.transports; } });
+var util_js_1 = require("./util.js");
+Object.defineProperty(exports, "installTimerFunctions", { enumerable: true, get: function () { return util_js_1.installTimerFunctions; } });
+var parseuri_js_1 = require("./contrib/parseuri.js");
+Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parseuri_js_1.parse; } });
+
+},{"./contrib/parseuri.js":47,"./socket.js":51,"./transport.js":52,"./transports/index.js":53,"./util.js":58}],51:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Socket = void 0;
+const index_js_1 = require("./transports/index.js");
+const util_js_1 = require("./util.js");
+const parseqs_js_1 = require("./contrib/parseqs.js");
+const parseuri_js_1 = require("./contrib/parseuri.js");
+const debug_1 = __importDefault(require("debug")); // debug()
+const component_emitter_1 = require("@socket.io/component-emitter");
+const engine_io_parser_1 = require("engine.io-parser");
+const debug = (0, debug_1.default)("engine.io-client:socket"); // debug()
+class Socket extends component_emitter_1.Emitter {
+    /**
+     * Socket constructor.
+     *
+     * @param {String|Object} uri or options
+     * @param {Object} opts - options
+     * @api public
+     */
+    constructor(uri, opts = {}) {
+        super();
+        if (uri && "object" === typeof uri) {
+            opts = uri;
+            uri = null;
+        }
+        if (uri) {
+            uri = (0, parseuri_js_1.parse)(uri);
+            opts.hostname = uri.host;
+            opts.secure = uri.protocol === "https" || uri.protocol === "wss";
+            opts.port = uri.port;
+            if (uri.query)
+                opts.query = uri.query;
+        }
+        else if (opts.host) {
+            opts.hostname = (0, parseuri_js_1.parse)(opts.host).host;
+        }
+        (0, util_js_1.installTimerFunctions)(this, opts);
+        this.secure =
+            null != opts.secure
+                ? opts.secure
+                : typeof location !== "undefined" && "https:" === location.protocol;
+        if (opts.hostname && !opts.port) {
+            // if no port is specified manually, use the protocol default
+            opts.port = this.secure ? "443" : "80";
+        }
+        this.hostname =
+            opts.hostname ||
+                (typeof location !== "undefined" ? location.hostname : "localhost");
+        this.port =
+            opts.port ||
+                (typeof location !== "undefined" && location.port
+                    ? location.port
+                    : this.secure
+                        ? "443"
+                        : "80");
+        this.transports = opts.transports || ["polling", "websocket"];
+        this.readyState = "";
+        this.writeBuffer = [];
+        this.prevBufferLen = 0;
+        this.opts = Object.assign({
+            path: "/engine.io",
+            agent: false,
+            withCredentials: false,
+            upgrade: true,
+            timestampParam: "t",
+            rememberUpgrade: false,
+            rejectUnauthorized: true,
+            perMessageDeflate: {
+                threshold: 1024
+            },
+            transportOptions: {},
+            closeOnBeforeunload: true
+        }, opts);
+        this.opts.path = this.opts.path.replace(/\/$/, "") + "/";
+        if (typeof this.opts.query === "string") {
+            this.opts.query = (0, parseqs_js_1.decode)(this.opts.query);
+        }
+        // set on handshake
+        this.id = null;
+        this.upgrades = null;
+        this.pingInterval = null;
+        this.pingTimeout = null;
+        // set on heartbeat
+        this.pingTimeoutTimer = null;
+        if (typeof addEventListener === "function") {
+            if (this.opts.closeOnBeforeunload) {
+                // Firefox closes the connection when the "beforeunload" event is emitted but not Chrome. This event listener
+                // ensures every browser behaves the same (no "disconnect" event at the Socket.IO level when the page is
+                // closed/reloaded)
+                addEventListener("beforeunload", () => {
+                    if (this.transport) {
+                        // silently close the transport
+                        this.transport.removeAllListeners();
+                        this.transport.close();
+                    }
+                }, false);
+            }
+            if (this.hostname !== "localhost") {
+                this.offlineEventListener = () => {
+                    this.onClose("transport close", {
+                        description: "network connection lost"
+                    });
+                };
+                addEventListener("offline", this.offlineEventListener, false);
+            }
+        }
+        this.open();
+    }
+    /**
+     * Creates transport of the given type.
+     *
+     * @param {String} transport name
+     * @return {Transport}
+     * @api private
+     */
+    createTransport(name) {
+        debug('creating transport "%s"', name);
+        const query = Object.assign({}, this.opts.query);
+        // append engine.io protocol identifier
+        query.EIO = engine_io_parser_1.protocol;
+        // transport name
+        query.transport = name;
+        // session id if we already have one
+        if (this.id)
+            query.sid = this.id;
+        const opts = Object.assign({}, this.opts.transportOptions[name], this.opts, {
+            query,
+            socket: this,
+            hostname: this.hostname,
+            secure: this.secure,
+            port: this.port
+        });
+        debug("options: %j", opts);
+        return new index_js_1.transports[name](opts);
+    }
+    /**
+     * Initializes transport to use and starts probe.
+     *
+     * @api private
+     */
+    open() {
+        let transport;
+        if (this.opts.rememberUpgrade &&
+            Socket.priorWebsocketSuccess &&
+            this.transports.indexOf("websocket") !== -1) {
+            transport = "websocket";
+        }
+        else if (0 === this.transports.length) {
+            // Emit error on next tick so it can be listened to
+            this.setTimeoutFn(() => {
+                this.emitReserved("error", "No transports available");
+            }, 0);
+            return;
+        }
+        else {
+            transport = this.transports[0];
+        }
+        this.readyState = "opening";
+        // Retry with the next transport if the transport is disabled (jsonp: false)
+        try {
+            transport = this.createTransport(transport);
+        }
+        catch (e) {
+            debug("error while creating transport: %s", e);
+            this.transports.shift();
+            this.open();
+            return;
+        }
+        transport.open();
+        this.setTransport(transport);
+    }
+    /**
+     * Sets the current transport. Disables the existing one (if any).
+     *
+     * @api private
+     */
+    setTransport(transport) {
+        debug("setting transport %s", transport.name);
+        if (this.transport) {
+            debug("clearing existing transport %s", this.transport.name);
+            this.transport.removeAllListeners();
+        }
+        // set up transport
+        this.transport = transport;
+        // set up transport listeners
+        transport
+            .on("drain", this.onDrain.bind(this))
+            .on("packet", this.onPacket.bind(this))
+            .on("error", this.onError.bind(this))
+            .on("close", reason => this.onClose("transport close", reason));
+    }
+    /**
+     * Probes a transport.
+     *
+     * @param {String} transport name
+     * @api private
+     */
+    probe(name) {
+        debug('probing transport "%s"', name);
+        let transport = this.createTransport(name);
+        let failed = false;
+        Socket.priorWebsocketSuccess = false;
+        const onTransportOpen = () => {
+            if (failed)
+                return;
+            debug('probe transport "%s" opened', name);
+            transport.send([{ type: "ping", data: "probe" }]);
+            transport.once("packet", msg => {
+                if (failed)
+                    return;
+                if ("pong" === msg.type && "probe" === msg.data) {
+                    debug('probe transport "%s" pong', name);
+                    this.upgrading = true;
+                    this.emitReserved("upgrading", transport);
+                    if (!transport)
+                        return;
+                    Socket.priorWebsocketSuccess = "websocket" === transport.name;
+                    debug('pausing current transport "%s"', this.transport.name);
+                    this.transport.pause(() => {
+                        if (failed)
+                            return;
+                        if ("closed" === this.readyState)
+                            return;
+                        debug("changing transport and sending upgrade packet");
+                        cleanup();
+                        this.setTransport(transport);
+                        transport.send([{ type: "upgrade" }]);
+                        this.emitReserved("upgrade", transport);
+                        transport = null;
+                        this.upgrading = false;
+                        this.flush();
+                    });
+                }
+                else {
+                    debug('probe transport "%s" failed', name);
+                    const err = new Error("probe error");
+                    // @ts-ignore
+                    err.transport = transport.name;
+                    this.emitReserved("upgradeError", err);
+                }
+            });
+        };
+        function freezeTransport() {
+            if (failed)
+                return;
+            // Any callback called by transport should be ignored since now
+            failed = true;
+            cleanup();
+            transport.close();
+            transport = null;
+        }
+        // Handle any error that happens while probing
+        const onerror = err => {
+            const error = new Error("probe error: " + err);
+            // @ts-ignore
+            error.transport = transport.name;
+            freezeTransport();
+            debug('probe transport "%s" failed because of error: %s', name, err);
+            this.emitReserved("upgradeError", error);
+        };
+        function onTransportClose() {
+            onerror("transport closed");
+        }
+        // When the socket is closed while we're probing
+        function onclose() {
+            onerror("socket closed");
+        }
+        // When the socket is upgraded while we're probing
+        function onupgrade(to) {
+            if (transport && to.name !== transport.name) {
+                debug('"%s" works - aborting "%s"', to.name, transport.name);
+                freezeTransport();
+            }
+        }
+        // Remove all listeners on the transport and on self
+        const cleanup = () => {
+            transport.removeListener("open", onTransportOpen);
+            transport.removeListener("error", onerror);
+            transport.removeListener("close", onTransportClose);
+            this.off("close", onclose);
+            this.off("upgrading", onupgrade);
+        };
+        transport.once("open", onTransportOpen);
+        transport.once("error", onerror);
+        transport.once("close", onTransportClose);
+        this.once("close", onclose);
+        this.once("upgrading", onupgrade);
+        transport.open();
+    }
+    /**
+     * Called when connection is deemed open.
+     *
+     * @api private
+     */
+    onOpen() {
+        debug("socket open");
+        this.readyState = "open";
+        Socket.priorWebsocketSuccess = "websocket" === this.transport.name;
+        this.emitReserved("open");
+        this.flush();
+        // we check for `readyState` in case an `open`
+        // listener already closed the socket
+        if ("open" === this.readyState &&
+            this.opts.upgrade &&
+            this.transport.pause) {
+            debug("starting upgrade probes");
+            let i = 0;
+            const l = this.upgrades.length;
+            for (; i < l; i++) {
+                this.probe(this.upgrades[i]);
+            }
+        }
+    }
+    /**
+     * Handles a packet.
+     *
+     * @api private
+     */
+    onPacket(packet) {
+        if ("opening" === this.readyState ||
+            "open" === this.readyState ||
+            "closing" === this.readyState) {
+            debug('socket receive: type "%s", data "%s"', packet.type, packet.data);
+            this.emitReserved("packet", packet);
+            // Socket is live - any packet counts
+            this.emitReserved("heartbeat");
+            switch (packet.type) {
+                case "open":
+                    this.onHandshake(JSON.parse(packet.data));
+                    break;
+                case "ping":
+                    this.resetPingTimeout();
+                    this.sendPacket("pong");
+                    this.emitReserved("ping");
+                    this.emitReserved("pong");
+                    break;
+                case "error":
+                    const err = new Error("server error");
+                    // @ts-ignore
+                    err.code = packet.data;
+                    this.onError(err);
+                    break;
+                case "message":
+                    this.emitReserved("data", packet.data);
+                    this.emitReserved("message", packet.data);
+                    break;
+            }
+        }
+        else {
+            debug('packet received with socket readyState "%s"', this.readyState);
+        }
+    }
+    /**
+     * Called upon handshake completion.
+     *
+     * @param {Object} data - handshake obj
+     * @api private
+     */
+    onHandshake(data) {
+        this.emitReserved("handshake", data);
+        this.id = data.sid;
+        this.transport.query.sid = data.sid;
+        this.upgrades = this.filterUpgrades(data.upgrades);
+        this.pingInterval = data.pingInterval;
+        this.pingTimeout = data.pingTimeout;
+        this.maxPayload = data.maxPayload;
+        this.onOpen();
+        // In case open handler closes socket
+        if ("closed" === this.readyState)
+            return;
+        this.resetPingTimeout();
+    }
+    /**
+     * Sets and resets ping timeout timer based on server pings.
+     *
+     * @api private
+     */
+    resetPingTimeout() {
+        this.clearTimeoutFn(this.pingTimeoutTimer);
+        this.pingTimeoutTimer = this.setTimeoutFn(() => {
+            this.onClose("ping timeout");
+        }, this.pingInterval + this.pingTimeout);
+        if (this.opts.autoUnref) {
+            this.pingTimeoutTimer.unref();
+        }
+    }
+    /**
+     * Called on `drain` event
+     *
+     * @api private
+     */
+    onDrain() {
+        this.writeBuffer.splice(0, this.prevBufferLen);
+        // setting prevBufferLen = 0 is very important
+        // for example, when upgrading, upgrade packet is sent over,
+        // and a nonzero prevBufferLen could cause problems on `drain`
+        this.prevBufferLen = 0;
+        if (0 === this.writeBuffer.length) {
+            this.emitReserved("drain");
+        }
+        else {
+            this.flush();
+        }
+    }
+    /**
+     * Flush write buffers.
+     *
+     * @api private
+     */
+    flush() {
+        if ("closed" !== this.readyState &&
+            this.transport.writable &&
+            !this.upgrading &&
+            this.writeBuffer.length) {
+            const packets = this.getWritablePackets();
+            debug("flushing %d packets in socket", packets.length);
+            this.transport.send(packets);
+            // keep track of current length of writeBuffer
+            // splice writeBuffer and callbackBuffer on `drain`
+            this.prevBufferLen = packets.length;
+            this.emitReserved("flush");
+        }
+    }
+    /**
+     * Ensure the encoded size of the writeBuffer is below the maxPayload value sent by the server (only for HTTP
+     * long-polling)
+     *
+     * @private
+     */
+    getWritablePackets() {
+        const shouldCheckPayloadSize = this.maxPayload &&
+            this.transport.name === "polling" &&
+            this.writeBuffer.length > 1;
+        if (!shouldCheckPayloadSize) {
+            return this.writeBuffer;
+        }
+        let payloadSize = 1; // first packet type
+        for (let i = 0; i < this.writeBuffer.length; i++) {
+            const data = this.writeBuffer[i].data;
+            if (data) {
+                payloadSize += (0, util_js_1.byteLength)(data);
+            }
+            if (i > 0 && payloadSize > this.maxPayload) {
+                debug("only send %d out of %d packets", i, this.writeBuffer.length);
+                return this.writeBuffer.slice(0, i);
+            }
+            payloadSize += 2; // separator + packet type
+        }
+        debug("payload size is %d (max: %d)", payloadSize, this.maxPayload);
+        return this.writeBuffer;
+    }
+    /**
+     * Sends a message.
+     *
+     * @param {String} message.
+     * @param {Function} callback function.
+     * @param {Object} options.
+     * @return {Socket} for chaining.
+     * @api public
+     */
+    write(msg, options, fn) {
+        this.sendPacket("message", msg, options, fn);
+        return this;
+    }
+    send(msg, options, fn) {
+        this.sendPacket("message", msg, options, fn);
+        return this;
+    }
+    /**
+     * Sends a packet.
+     *
+     * @param {String} packet type.
+     * @param {String} data.
+     * @param {Object} options.
+     * @param {Function} callback function.
+     * @api private
+     */
+    sendPacket(type, data, options, fn) {
+        if ("function" === typeof data) {
+            fn = data;
+            data = undefined;
+        }
+        if ("function" === typeof options) {
+            fn = options;
+            options = null;
+        }
+        if ("closing" === this.readyState || "closed" === this.readyState) {
+            return;
+        }
+        options = options || {};
+        options.compress = false !== options.compress;
+        const packet = {
+            type: type,
+            data: data,
+            options: options
+        };
+        this.emitReserved("packetCreate", packet);
+        this.writeBuffer.push(packet);
+        if (fn)
+            this.once("flush", fn);
+        this.flush();
+    }
+    /**
+     * Closes the connection.
+     *
+     * @api public
+     */
+    close() {
+        const close = () => {
+            this.onClose("forced close");
+            debug("socket closing - telling transport to close");
+            this.transport.close();
+        };
+        const cleanupAndClose = () => {
+            this.off("upgrade", cleanupAndClose);
+            this.off("upgradeError", cleanupAndClose);
+            close();
+        };
+        const waitForUpgrade = () => {
+            // wait for upgrade to finish since we can't send packets while pausing a transport
+            this.once("upgrade", cleanupAndClose);
+            this.once("upgradeError", cleanupAndClose);
+        };
+        if ("opening" === this.readyState || "open" === this.readyState) {
+            this.readyState = "closing";
+            if (this.writeBuffer.length) {
+                this.once("drain", () => {
+                    if (this.upgrading) {
+                        waitForUpgrade();
+                    }
+                    else {
+                        close();
+                    }
+                });
+            }
+            else if (this.upgrading) {
+                waitForUpgrade();
+            }
+            else {
+                close();
+            }
+        }
+        return this;
+    }
+    /**
+     * Called upon transport error
+     *
+     * @api private
+     */
+    onError(err) {
+        debug("socket error %j", err);
+        Socket.priorWebsocketSuccess = false;
+        this.emitReserved("error", err);
+        this.onClose("transport error", err);
+    }
+    /**
+     * Called upon transport close.
+     *
+     * @api private
+     */
+    onClose(reason, description) {
+        if ("opening" === this.readyState ||
+            "open" === this.readyState ||
+            "closing" === this.readyState) {
+            debug('socket close with reason: "%s"', reason);
+            // clear timers
+            this.clearTimeoutFn(this.pingTimeoutTimer);
+            // stop event from firing again for transport
+            this.transport.removeAllListeners("close");
+            // ensure transport won't stay open
+            this.transport.close();
+            // ignore further transport communication
+            this.transport.removeAllListeners();
+            if (typeof removeEventListener === "function") {
+                removeEventListener("offline", this.offlineEventListener, false);
+            }
+            // set ready state
+            this.readyState = "closed";
+            // clear session id
+            this.id = null;
+            // emit close event
+            this.emitReserved("close", reason, description);
+            // clean buffers after, so users can still
+            // grab the buffers on `close` event
+            this.writeBuffer = [];
+            this.prevBufferLen = 0;
+        }
+    }
+    /**
+     * Filters upgrades, returning only those matching client transports.
+     *
+     * @param {Array} server upgrades
+     * @api private
+     *
+     */
+    filterUpgrades(upgrades) {
+        const filteredUpgrades = [];
+        let i = 0;
+        const j = upgrades.length;
+        for (; i < j; i++) {
+            if (~this.transports.indexOf(upgrades[i]))
+                filteredUpgrades.push(upgrades[i]);
+        }
+        return filteredUpgrades;
+    }
+}
+exports.Socket = Socket;
+Socket.protocol = engine_io_parser_1.protocol;
+
+},{"./contrib/parseqs.js":46,"./contrib/parseuri.js":47,"./transports/index.js":53,"./util.js":58,"@socket.io/component-emitter":6,"debug":43,"engine.io-parser":63}],52:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Transport = void 0;
+const engine_io_parser_1 = require("engine.io-parser");
+const component_emitter_1 = require("@socket.io/component-emitter");
+const util_js_1 = require("./util.js");
+const debug_1 = __importDefault(require("debug")); // debug()
+const debug = (0, debug_1.default)("engine.io-client:transport"); // debug()
+class TransportError extends Error {
+    constructor(reason, description, context) {
+        super(reason);
+        this.description = description;
+        this.context = context;
+        this.type = "TransportError";
+    }
+}
+class Transport extends component_emitter_1.Emitter {
+    /**
+     * Transport abstract constructor.
+     *
+     * @param {Object} options.
+     * @api private
+     */
+    constructor(opts) {
+        super();
+        this.writable = false;
+        (0, util_js_1.installTimerFunctions)(this, opts);
+        this.opts = opts;
+        this.query = opts.query;
+        this.readyState = "";
+        this.socket = opts.socket;
+    }
+    /**
+     * Emits an error.
+     *
+     * @param {String} reason
+     * @param description
+     * @param context - the error context
+     * @return {Transport} for chaining
+     * @api protected
+     */
+    onError(reason, description, context) {
+        super.emitReserved("error", new TransportError(reason, description, context));
+        return this;
+    }
+    /**
+     * Opens the transport.
+     *
+     * @api public
+     */
+    open() {
+        if ("closed" === this.readyState || "" === this.readyState) {
+            this.readyState = "opening";
+            this.doOpen();
+        }
+        return this;
+    }
+    /**
+     * Closes the transport.
+     *
+     * @api public
+     */
+    close() {
+        if ("opening" === this.readyState || "open" === this.readyState) {
+            this.doClose();
+            this.onClose();
+        }
+        return this;
+    }
+    /**
+     * Sends multiple packets.
+     *
+     * @param {Array} packets
+     * @api public
+     */
+    send(packets) {
+        if ("open" === this.readyState) {
+            this.write(packets);
+        }
+        else {
+            // this might happen if the transport was silently closed in the beforeunload event handler
+            debug("transport is not open, discarding packets");
+        }
+    }
+    /**
+     * Called upon open
+     *
+     * @api protected
+     */
+    onOpen() {
+        this.readyState = "open";
+        this.writable = true;
+        super.emitReserved("open");
+    }
+    /**
+     * Called with data.
+     *
+     * @param {String} data
+     * @api protected
+     */
+    onData(data) {
+        const packet = (0, engine_io_parser_1.decodePacket)(data, this.socket.binaryType);
+        this.onPacket(packet);
+    }
+    /**
+     * Called with a decoded packet.
+     *
+     * @api protected
+     */
+    onPacket(packet) {
+        super.emitReserved("packet", packet);
+    }
+    /**
+     * Called upon close.
+     *
+     * @api protected
+     */
+    onClose(details) {
+        this.readyState = "closed";
+        super.emitReserved("close", details);
+    }
+}
+exports.Transport = Transport;
+
+},{"./util.js":58,"@socket.io/component-emitter":6,"debug":43,"engine.io-parser":63}],53:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.transports = void 0;
+const polling_js_1 = require("./polling.js");
+const websocket_js_1 = require("./websocket.js");
+exports.transports = {
+    websocket: websocket_js_1.WS,
+    polling: polling_js_1.Polling
+};
+
+},{"./polling.js":54,"./websocket.js":56}],54:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Request = exports.Polling = void 0;
+const transport_js_1 = require("../transport.js");
+const debug_1 = __importDefault(require("debug")); // debug()
+const yeast_js_1 = require("../contrib/yeast.js");
+const parseqs_js_1 = require("../contrib/parseqs.js");
+const engine_io_parser_1 = require("engine.io-parser");
+const xmlhttprequest_js_1 = require("./xmlhttprequest.js");
+const component_emitter_1 = require("@socket.io/component-emitter");
+const util_js_1 = require("../util.js");
+const globalThis_js_1 = require("../globalThis.js");
+const debug = (0, debug_1.default)("engine.io-client:polling"); // debug()
+function empty() { }
+const hasXHR2 = (function () {
+    const xhr = new xmlhttprequest_js_1.XHR({
+        xdomain: false
+    });
+    return null != xhr.responseType;
+})();
+class Polling extends transport_js_1.Transport {
+    /**
+     * XHR Polling constructor.
+     *
+     * @param {Object} opts
+     * @api public
+     */
+    constructor(opts) {
+        super(opts);
+        this.polling = false;
+        if (typeof location !== "undefined") {
+            const isSSL = "https:" === location.protocol;
+            let port = location.port;
+            // some user agents have empty `location.port`
+            if (!port) {
+                port = isSSL ? "443" : "80";
+            }
+            this.xd =
+                (typeof location !== "undefined" &&
+                    opts.hostname !== location.hostname) ||
+                    port !== opts.port;
+            this.xs = opts.secure !== isSSL;
+        }
+        /**
+         * XHR supports binary
+         */
+        const forceBase64 = opts && opts.forceBase64;
+        this.supportsBinary = hasXHR2 && !forceBase64;
+    }
+    /**
+     * Transport name.
+     */
+    get name() {
+        return "polling";
+    }
+    /**
+     * Opens the socket (triggers polling). We write a PING message to determine
+     * when the transport is open.
+     *
+     * @api private
+     */
+    doOpen() {
+        this.poll();
+    }
+    /**
+     * Pauses polling.
+     *
+     * @param {Function} callback upon buffers are flushed and transport is paused
+     * @api private
+     */
+    pause(onPause) {
+        this.readyState = "pausing";
+        const pause = () => {
+            debug("paused");
+            this.readyState = "paused";
+            onPause();
+        };
+        if (this.polling || !this.writable) {
+            let total = 0;
+            if (this.polling) {
+                debug("we are currently polling - waiting to pause");
+                total++;
+                this.once("pollComplete", function () {
+                    debug("pre-pause polling complete");
+                    --total || pause();
+                });
+            }
+            if (!this.writable) {
+                debug("we are currently writing - waiting to pause");
+                total++;
+                this.once("drain", function () {
+                    debug("pre-pause writing complete");
+                    --total || pause();
+                });
+            }
+        }
+        else {
+            pause();
+        }
+    }
+    /**
+     * Starts polling cycle.
+     *
+     * @api public
+     */
+    poll() {
+        debug("polling");
+        this.polling = true;
+        this.doPoll();
+        this.emitReserved("poll");
+    }
+    /**
+     * Overloads onData to detect payloads.
+     *
+     * @api private
+     */
+    onData(data) {
+        debug("polling got data %s", data);
+        const callback = packet => {
+            // if its the first message we consider the transport open
+            if ("opening" === this.readyState && packet.type === "open") {
+                this.onOpen();
+            }
+            // if its a close packet, we close the ongoing requests
+            if ("close" === packet.type) {
+                this.onClose({ description: "transport closed by the server" });
+                return false;
+            }
+            // otherwise bypass onData and handle the message
+            this.onPacket(packet);
+        };
+        // decode payload
+        (0, engine_io_parser_1.decodePayload)(data, this.socket.binaryType).forEach(callback);
+        // if an event did not trigger closing
+        if ("closed" !== this.readyState) {
+            // if we got data we're not polling
+            this.polling = false;
+            this.emitReserved("pollComplete");
+            if ("open" === this.readyState) {
+                this.poll();
+            }
+            else {
+                debug('ignoring poll - transport state "%s"', this.readyState);
+            }
+        }
+    }
+    /**
+     * For polling, send a close packet.
+     *
+     * @api private
+     */
+    doClose() {
+        const close = () => {
+            debug("writing close packet");
+            this.write([{ type: "close" }]);
+        };
+        if ("open" === this.readyState) {
+            debug("transport open - closing");
+            close();
+        }
+        else {
+            // in case we're trying to close while
+            // handshaking is in progress (GH-164)
+            debug("transport not open - deferring close");
+            this.once("open", close);
+        }
+    }
+    /**
+     * Writes a packets payload.
+     *
+     * @param {Array} data packets
+     * @param {Function} drain callback
+     * @api private
+     */
+    write(packets) {
+        this.writable = false;
+        (0, engine_io_parser_1.encodePayload)(packets, data => {
+            this.doWrite(data, () => {
+                this.writable = true;
+                this.emitReserved("drain");
+            });
+        });
+    }
+    /**
+     * Generates uri for connection.
+     *
+     * @api private
+     */
+    uri() {
+        let query = this.query || {};
+        const schema = this.opts.secure ? "https" : "http";
+        let port = "";
+        // cache busting is forced
+        if (false !== this.opts.timestampRequests) {
+            query[this.opts.timestampParam] = (0, yeast_js_1.yeast)();
+        }
+        if (!this.supportsBinary && !query.sid) {
+            query.b64 = 1;
+        }
+        // avoid port if default for schema
+        if (this.opts.port &&
+            (("https" === schema && Number(this.opts.port) !== 443) ||
+                ("http" === schema && Number(this.opts.port) !== 80))) {
+            port = ":" + this.opts.port;
+        }
+        const encodedQuery = (0, parseqs_js_1.encode)(query);
+        const ipv6 = this.opts.hostname.indexOf(":") !== -1;
+        return (schema +
+            "://" +
+            (ipv6 ? "[" + this.opts.hostname + "]" : this.opts.hostname) +
+            port +
+            this.opts.path +
+            (encodedQuery.length ? "?" + encodedQuery : ""));
+    }
+    /**
+     * Creates a request.
+     *
+     * @param {String} method
+     * @api private
+     */
+    request(opts = {}) {
+        Object.assign(opts, { xd: this.xd, xs: this.xs }, this.opts);
+        return new Request(this.uri(), opts);
+    }
+    /**
+     * Sends data.
+     *
+     * @param {String} data to send.
+     * @param {Function} called upon flush.
+     * @api private
+     */
+    doWrite(data, fn) {
+        const req = this.request({
+            method: "POST",
+            data: data
+        });
+        req.on("success", fn);
+        req.on("error", (xhrStatus, context) => {
+            this.onError("xhr post error", xhrStatus, context);
+        });
+    }
+    /**
+     * Starts a poll cycle.
+     *
+     * @api private
+     */
+    doPoll() {
+        debug("xhr poll");
+        const req = this.request();
+        req.on("data", this.onData.bind(this));
+        req.on("error", (xhrStatus, context) => {
+            this.onError("xhr poll error", xhrStatus, context);
+        });
+        this.pollXhr = req;
+    }
+}
+exports.Polling = Polling;
+class Request extends component_emitter_1.Emitter {
+    /**
+     * Request constructor
+     *
+     * @param {Object} options
+     * @api public
+     */
+    constructor(uri, opts) {
+        super();
+        (0, util_js_1.installTimerFunctions)(this, opts);
+        this.opts = opts;
+        this.method = opts.method || "GET";
+        this.uri = uri;
+        this.async = false !== opts.async;
+        this.data = undefined !== opts.data ? opts.data : null;
+        this.create();
+    }
+    /**
+     * Creates the XHR object and sends the request.
+     *
+     * @api private
+     */
+    create() {
+        const opts = (0, util_js_1.pick)(this.opts, "agent", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "autoUnref");
+        opts.xdomain = !!this.opts.xd;
+        opts.xscheme = !!this.opts.xs;
+        const xhr = (this.xhr = new xmlhttprequest_js_1.XHR(opts));
+        try {
+            debug("xhr open %s: %s", this.method, this.uri);
+            xhr.open(this.method, this.uri, this.async);
+            try {
+                if (this.opts.extraHeaders) {
+                    xhr.setDisableHeaderCheck && xhr.setDisableHeaderCheck(true);
+                    for (let i in this.opts.extraHeaders) {
+                        if (this.opts.extraHeaders.hasOwnProperty(i)) {
+                            xhr.setRequestHeader(i, this.opts.extraHeaders[i]);
+                        }
+                    }
+                }
+            }
+            catch (e) { }
+            if ("POST" === this.method) {
+                try {
+                    xhr.setRequestHeader("Content-type", "text/plain;charset=UTF-8");
+                }
+                catch (e) { }
+            }
+            try {
+                xhr.setRequestHeader("Accept", "*/*");
+            }
+            catch (e) { }
+            // ie6 check
+            if ("withCredentials" in xhr) {
+                xhr.withCredentials = this.opts.withCredentials;
+            }
+            if (this.opts.requestTimeout) {
+                xhr.timeout = this.opts.requestTimeout;
+            }
+            xhr.onreadystatechange = () => {
+                if (4 !== xhr.readyState)
+                    return;
+                if (200 === xhr.status || 1223 === xhr.status) {
+                    this.onLoad();
+                }
+                else {
+                    // make sure the `error` event handler that's user-set
+                    // does not throw in the same tick and gets caught here
+                    this.setTimeoutFn(() => {
+                        this.onError(typeof xhr.status === "number" ? xhr.status : 0);
+                    }, 0);
+                }
+            };
+            debug("xhr data %s", this.data);
+            xhr.send(this.data);
+        }
+        catch (e) {
+            // Need to defer since .create() is called directly from the constructor
+            // and thus the 'error' event can only be only bound *after* this exception
+            // occurs.  Therefore, also, we cannot throw here at all.
+            this.setTimeoutFn(() => {
+                this.onError(e);
+            }, 0);
+            return;
+        }
+        if (typeof document !== "undefined") {
+            this.index = Request.requestsCount++;
+            Request.requests[this.index] = this;
+        }
+    }
+    /**
+     * Called upon error.
+     *
+     * @api private
+     */
+    onError(err) {
+        this.emitReserved("error", err, this.xhr);
+        this.cleanup(true);
+    }
+    /**
+     * Cleans up house.
+     *
+     * @api private
+     */
+    cleanup(fromError) {
+        if ("undefined" === typeof this.xhr || null === this.xhr) {
+            return;
+        }
+        this.xhr.onreadystatechange = empty;
+        if (fromError) {
+            try {
+                this.xhr.abort();
+            }
+            catch (e) { }
+        }
+        if (typeof document !== "undefined") {
+            delete Request.requests[this.index];
+        }
+        this.xhr = null;
+    }
+    /**
+     * Called upon load.
+     *
+     * @api private
+     */
+    onLoad() {
+        const data = this.xhr.responseText;
+        if (data !== null) {
+            this.emitReserved("data", data);
+            this.emitReserved("success");
+            this.cleanup();
+        }
+    }
+    /**
+     * Aborts the request.
+     *
+     * @api public
+     */
+    abort() {
+        this.cleanup();
+    }
+}
+exports.Request = Request;
+Request.requestsCount = 0;
+Request.requests = {};
+/**
+ * Aborts pending requests when unloading the window. This is needed to prevent
+ * memory leaks (e.g. when using IE) and to ensure that no spurious error is
+ * emitted.
+ */
+if (typeof document !== "undefined") {
+    // @ts-ignore
+    if (typeof attachEvent === "function") {
+        // @ts-ignore
+        attachEvent("onunload", unloadHandler);
+    }
+    else if (typeof addEventListener === "function") {
+        const terminationEvent = "onpagehide" in globalThis_js_1.globalThisShim ? "pagehide" : "unload";
+        addEventListener(terminationEvent, unloadHandler, false);
+    }
+}
+function unloadHandler() {
+    for (let i in Request.requests) {
+        if (Request.requests.hasOwnProperty(i)) {
+            Request.requests[i].abort();
+        }
+    }
+}
+
+},{"../contrib/parseqs.js":46,"../contrib/yeast.js":48,"../globalThis.js":49,"../transport.js":52,"../util.js":58,"./xmlhttprequest.js":57,"@socket.io/component-emitter":6,"debug":43,"engine.io-parser":63}],55:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.defaultBinaryType = exports.usingBrowserWebSocket = exports.WebSocket = exports.nextTick = void 0;
+const globalThis_js_1 = require("../globalThis.js");
+exports.nextTick = (() => {
+    const isPromiseAvailable = typeof Promise === "function" && typeof Promise.resolve === "function";
+    if (isPromiseAvailable) {
+        return cb => Promise.resolve().then(cb);
+    }
+    else {
+        return (cb, setTimeoutFn) => setTimeoutFn(cb, 0);
+    }
+})();
+exports.WebSocket = globalThis_js_1.globalThisShim.WebSocket || globalThis_js_1.globalThisShim.MozWebSocket;
+exports.usingBrowserWebSocket = true;
+exports.defaultBinaryType = "arraybuffer";
+
+},{"../globalThis.js":49}],56:[function(require,module,exports){
+(function (Buffer){(function (){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WS = void 0;
+const transport_js_1 = require("../transport.js");
+const parseqs_js_1 = require("../contrib/parseqs.js");
+const yeast_js_1 = require("../contrib/yeast.js");
+const util_js_1 = require("../util.js");
+const websocket_constructor_js_1 = require("./websocket-constructor.js");
+const debug_1 = __importDefault(require("debug")); // debug()
+const engine_io_parser_1 = require("engine.io-parser");
+const debug = (0, debug_1.default)("engine.io-client:websocket"); // debug()
+// detect ReactNative environment
+const isReactNative = typeof navigator !== "undefined" &&
+    typeof navigator.product === "string" &&
+    navigator.product.toLowerCase() === "reactnative";
+class WS extends transport_js_1.Transport {
+    /**
+     * WebSocket transport constructor.
+     *
+     * @api {Object} connection options
+     * @api public
+     */
+    constructor(opts) {
+        super(opts);
+        this.supportsBinary = !opts.forceBase64;
+    }
+    /**
+     * Transport name.
+     *
+     * @api public
+     */
+    get name() {
+        return "websocket";
+    }
+    /**
+     * Opens socket.
+     *
+     * @api private
+     */
+    doOpen() {
+        if (!this.check()) {
+            // let probe timeout
+            return;
+        }
+        const uri = this.uri();
+        const protocols = this.opts.protocols;
+        // React Native only supports the 'headers' option, and will print a warning if anything else is passed
+        const opts = isReactNative
+            ? {}
+            : (0, util_js_1.pick)(this.opts, "agent", "perMessageDeflate", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "localAddress", "protocolVersion", "origin", "maxPayload", "family", "checkServerIdentity");
+        if (this.opts.extraHeaders) {
+            opts.headers = this.opts.extraHeaders;
+        }
+        try {
+            this.ws =
+                websocket_constructor_js_1.usingBrowserWebSocket && !isReactNative
+                    ? protocols
+                        ? new websocket_constructor_js_1.WebSocket(uri, protocols)
+                        : new websocket_constructor_js_1.WebSocket(uri)
+                    : new websocket_constructor_js_1.WebSocket(uri, protocols, opts);
+        }
+        catch (err) {
+            return this.emitReserved("error", err);
+        }
+        this.ws.binaryType = this.socket.binaryType || websocket_constructor_js_1.defaultBinaryType;
+        this.addEventListeners();
+    }
+    /**
+     * Adds event listeners to the socket
+     *
+     * @api private
+     */
+    addEventListeners() {
+        this.ws.onopen = () => {
+            if (this.opts.autoUnref) {
+                this.ws._socket.unref();
+            }
+            this.onOpen();
+        };
+        this.ws.onclose = closeEvent => this.onClose({
+            description: "websocket connection closed",
+            context: closeEvent
+        });
+        this.ws.onmessage = ev => this.onData(ev.data);
+        this.ws.onerror = e => this.onError("websocket error", e);
+    }
+    /**
+     * Writes data to socket.
+     *
+     * @param {Array} array of packets.
+     * @api private
+     */
+    write(packets) {
+        this.writable = false;
+        // encodePacket efficient as it uses WS framing
+        // no need for encodePayload
+        for (let i = 0; i < packets.length; i++) {
+            const packet = packets[i];
+            const lastPacket = i === packets.length - 1;
+            (0, engine_io_parser_1.encodePacket)(packet, this.supportsBinary, data => {
+                // always create a new object (GH-437)
+                const opts = {};
+                if (!websocket_constructor_js_1.usingBrowserWebSocket) {
+                    if (packet.options) {
+                        opts.compress = packet.options.compress;
+                    }
+                    if (this.opts.perMessageDeflate) {
+                        const len = 
+                        // @ts-ignore
+                        "string" === typeof data ? Buffer.byteLength(data) : data.length;
+                        if (len < this.opts.perMessageDeflate.threshold) {
+                            opts.compress = false;
+                        }
+                    }
+                }
+                // Sometimes the websocket has already been closed but the browser didn't
+                // have a chance of informing us about it yet, in that case send will
+                // throw an error
+                try {
+                    if (websocket_constructor_js_1.usingBrowserWebSocket) {
+                        // TypeError is thrown when passing the second argument on Safari
+                        this.ws.send(data);
+                    }
+                    else {
+                        this.ws.send(data, opts);
+                    }
+                }
+                catch (e) {
+                    debug("websocket closed before onclose event");
+                }
+                if (lastPacket) {
+                    // fake drain
+                    // defer to next tick to allow Socket to clear writeBuffer
+                    (0, websocket_constructor_js_1.nextTick)(() => {
+                        this.writable = true;
+                        this.emitReserved("drain");
+                    }, this.setTimeoutFn);
+                }
+            });
+        }
+    }
+    /**
+     * Closes socket.
+     *
+     * @api private
+     */
+    doClose() {
+        if (typeof this.ws !== "undefined") {
+            this.ws.close();
+            this.ws = null;
+        }
+    }
+    /**
+     * Generates uri for connection.
+     *
+     * @api private
+     */
+    uri() {
+        let query = this.query || {};
+        const schema = this.opts.secure ? "wss" : "ws";
+        let port = "";
+        // avoid port if default for schema
+        if (this.opts.port &&
+            (("wss" === schema && Number(this.opts.port) !== 443) ||
+                ("ws" === schema && Number(this.opts.port) !== 80))) {
+            port = ":" + this.opts.port;
+        }
+        // append timestamp to URI
+        if (this.opts.timestampRequests) {
+            query[this.opts.timestampParam] = (0, yeast_js_1.yeast)();
+        }
+        // communicate binary support capabilities
+        if (!this.supportsBinary) {
+            query.b64 = 1;
+        }
+        const encodedQuery = (0, parseqs_js_1.encode)(query);
+        const ipv6 = this.opts.hostname.indexOf(":") !== -1;
+        return (schema +
+            "://" +
+            (ipv6 ? "[" + this.opts.hostname + "]" : this.opts.hostname) +
+            port +
+            this.opts.path +
+            (encodedQuery.length ? "?" + encodedQuery : ""));
+    }
+    /**
+     * Feature detection for WebSocket.
+     *
+     * @return {Boolean} whether this transport is available.
+     * @api public
+     */
+    check() {
+        return !!websocket_constructor_js_1.WebSocket;
+    }
+}
+exports.WS = WS;
+
+}).call(this)}).call(this,require("buffer").Buffer)
+},{"../contrib/parseqs.js":46,"../contrib/yeast.js":48,"../transport.js":52,"../util.js":58,"./websocket-constructor.js":55,"buffer":40,"debug":43,"engine.io-parser":63}],57:[function(require,module,exports){
+"use strict";
+// browser shim for xmlhttprequest module
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.XHR = void 0;
+const has_cors_js_1 = require("../contrib/has-cors.js");
+const globalThis_js_1 = require("../globalThis.js");
+function XHR(opts) {
+    const xdomain = opts.xdomain;
+    // XMLHttpRequest can be disabled on IE
+    try {
+        if ("undefined" !== typeof XMLHttpRequest && (!xdomain || has_cors_js_1.hasCORS)) {
+            return new XMLHttpRequest();
+        }
+    }
+    catch (e) { }
+    if (!xdomain) {
+        try {
+            return new globalThis_js_1.globalThisShim[["Active"].concat("Object").join("X")]("Microsoft.XMLHTTP");
+        }
+        catch (e) { }
+    }
+}
+exports.XHR = XHR;
+
+},{"../contrib/has-cors.js":45,"../globalThis.js":49}],58:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.byteLength = exports.installTimerFunctions = exports.pick = void 0;
+const globalThis_js_1 = require("./globalThis.js");
+function pick(obj, ...attr) {
+    return attr.reduce((acc, k) => {
+        if (obj.hasOwnProperty(k)) {
+            acc[k] = obj[k];
+        }
+        return acc;
+    }, {});
+}
+exports.pick = pick;
+// Keep a reference to the real timeout functions so they can be used when overridden
+const NATIVE_SET_TIMEOUT = setTimeout;
+const NATIVE_CLEAR_TIMEOUT = clearTimeout;
+function installTimerFunctions(obj, opts) {
+    if (opts.useNativeTimers) {
+        obj.setTimeoutFn = NATIVE_SET_TIMEOUT.bind(globalThis_js_1.globalThisShim);
+        obj.clearTimeoutFn = NATIVE_CLEAR_TIMEOUT.bind(globalThis_js_1.globalThisShim);
+    }
+    else {
+        obj.setTimeoutFn = setTimeout.bind(globalThis_js_1.globalThisShim);
+        obj.clearTimeoutFn = clearTimeout.bind(globalThis_js_1.globalThisShim);
+    }
+}
+exports.installTimerFunctions = installTimerFunctions;
+// base64 encoded buffers are about 33% bigger (https://en.wikipedia.org/wiki/Base64)
+const BASE64_OVERHEAD = 1.33;
+// we could also have used `new Blob([obj]).size`, but it isn't supported in IE9
+function byteLength(obj) {
+    if (typeof obj === "string") {
+        return utf8Length(obj);
+    }
+    // arraybuffer or blob
+    return Math.ceil((obj.byteLength || obj.size) * BASE64_OVERHEAD);
+}
+exports.byteLength = byteLength;
+function utf8Length(str) {
+    let c = 0, length = 0;
+    for (let i = 0, l = str.length; i < l; i++) {
+        c = str.charCodeAt(i);
+        if (c < 0x80) {
+            length += 1;
+        }
+        else if (c < 0x800) {
+            length += 2;
+        }
+        else if (c < 0xd800 || c >= 0xe000) {
+            length += 3;
+        }
+        else {
+            i++;
+            length += 4;
+        }
+    }
+    return length;
+}
+
+},{"./globalThis.js":49}],59:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ERROR_PACKET = exports.PACKET_TYPES_REVERSE = exports.PACKET_TYPES = void 0;
+const PACKET_TYPES = Object.create(null); // no Map = no polyfill
+exports.PACKET_TYPES = PACKET_TYPES;
+PACKET_TYPES["open"] = "0";
+PACKET_TYPES["close"] = "1";
+PACKET_TYPES["ping"] = "2";
+PACKET_TYPES["pong"] = "3";
+PACKET_TYPES["message"] = "4";
+PACKET_TYPES["upgrade"] = "5";
+PACKET_TYPES["noop"] = "6";
+const PACKET_TYPES_REVERSE = Object.create(null);
+exports.PACKET_TYPES_REVERSE = PACKET_TYPES_REVERSE;
+Object.keys(PACKET_TYPES).forEach(key => {
+    PACKET_TYPES_REVERSE[PACKET_TYPES[key]] = key;
+});
+const ERROR_PACKET = { type: "error", data: "parser error" };
+exports.ERROR_PACKET = ERROR_PACKET;
+
+},{}],60:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.decode = exports.encode = void 0;
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+// Use a lookup table to find the index.
+const lookup = typeof Uint8Array === 'undefined' ? [] : new Uint8Array(256);
+for (let i = 0; i < chars.length; i++) {
+    lookup[chars.charCodeAt(i)] = i;
+}
+const encode = (arraybuffer) => {
+    let bytes = new Uint8Array(arraybuffer), i, len = bytes.length, base64 = '';
+    for (i = 0; i < len; i += 3) {
+        base64 += chars[bytes[i] >> 2];
+        base64 += chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
+        base64 += chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
+        base64 += chars[bytes[i + 2] & 63];
+    }
+    if (len % 3 === 2) {
+        base64 = base64.substring(0, base64.length - 1) + '=';
+    }
+    else if (len % 3 === 1) {
+        base64 = base64.substring(0, base64.length - 2) + '==';
+    }
+    return base64;
+};
+exports.encode = encode;
+const decode = (base64) => {
+    let bufferLength = base64.length * 0.75, len = base64.length, i, p = 0, encoded1, encoded2, encoded3, encoded4;
+    if (base64[base64.length - 1] === '=') {
+        bufferLength--;
+        if (base64[base64.length - 2] === '=') {
+            bufferLength--;
+        }
+    }
+    const arraybuffer = new ArrayBuffer(bufferLength), bytes = new Uint8Array(arraybuffer);
+    for (i = 0; i < len; i += 4) {
+        encoded1 = lookup[base64.charCodeAt(i)];
+        encoded2 = lookup[base64.charCodeAt(i + 1)];
+        encoded3 = lookup[base64.charCodeAt(i + 2)];
+        encoded4 = lookup[base64.charCodeAt(i + 3)];
+        bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+        bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+        bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+    }
+    return arraybuffer;
+};
+exports.decode = decode;
+
+},{}],61:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const commons_js_1 = require("./commons.js");
+const base64_arraybuffer_js_1 = require("./contrib/base64-arraybuffer.js");
+const withNativeArrayBuffer = typeof ArrayBuffer === "function";
+const decodePacket = (encodedPacket, binaryType) => {
+    if (typeof encodedPacket !== "string") {
+        return {
+            type: "message",
+            data: mapBinary(encodedPacket, binaryType)
+        };
+    }
+    const type = encodedPacket.charAt(0);
+    if (type === "b") {
+        return {
+            type: "message",
+            data: decodeBase64Packet(encodedPacket.substring(1), binaryType)
+        };
+    }
+    const packetType = commons_js_1.PACKET_TYPES_REVERSE[type];
+    if (!packetType) {
+        return commons_js_1.ERROR_PACKET;
+    }
+    return encodedPacket.length > 1
+        ? {
+            type: commons_js_1.PACKET_TYPES_REVERSE[type],
+            data: encodedPacket.substring(1)
+        }
+        : {
+            type: commons_js_1.PACKET_TYPES_REVERSE[type]
+        };
+};
+const decodeBase64Packet = (data, binaryType) => {
+    if (withNativeArrayBuffer) {
+        const decoded = (0, base64_arraybuffer_js_1.decode)(data);
+        return mapBinary(decoded, binaryType);
+    }
+    else {
+        return { base64: true, data }; // fallback for old browsers
+    }
+};
+const mapBinary = (data, binaryType) => {
+    switch (binaryType) {
+        case "blob":
+            return data instanceof ArrayBuffer ? new Blob([data]) : data;
+        case "arraybuffer":
+        default:
+            return data; // assuming the data is already an ArrayBuffer
+    }
+};
+exports.default = decodePacket;
+
+},{"./commons.js":59,"./contrib/base64-arraybuffer.js":60}],62:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const commons_js_1 = require("./commons.js");
+const withNativeBlob = typeof Blob === "function" ||
+    (typeof Blob !== "undefined" &&
+        Object.prototype.toString.call(Blob) === "[object BlobConstructor]");
+const withNativeArrayBuffer = typeof ArrayBuffer === "function";
+// ArrayBuffer.isView method is not defined in IE10
+const isView = obj => {
+    return typeof ArrayBuffer.isView === "function"
+        ? ArrayBuffer.isView(obj)
+        : obj && obj.buffer instanceof ArrayBuffer;
+};
+const encodePacket = ({ type, data }, supportsBinary, callback) => {
+    if (withNativeBlob && data instanceof Blob) {
+        if (supportsBinary) {
+            return callback(data);
+        }
+        else {
+            return encodeBlobAsBase64(data, callback);
+        }
+    }
+    else if (withNativeArrayBuffer &&
+        (data instanceof ArrayBuffer || isView(data))) {
+        if (supportsBinary) {
+            return callback(data);
+        }
+        else {
+            return encodeBlobAsBase64(new Blob([data]), callback);
+        }
+    }
+    // plain string
+    return callback(commons_js_1.PACKET_TYPES[type] + (data || ""));
+};
+const encodeBlobAsBase64 = (data, callback) => {
+    const fileReader = new FileReader();
+    fileReader.onload = function () {
+        const content = fileReader.result.split(",")[1];
+        callback("b" + content);
+    };
+    return fileReader.readAsDataURL(data);
+};
+exports.default = encodePacket;
+
+},{"./commons.js":59}],63:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.decodePayload = exports.decodePacket = exports.encodePayload = exports.encodePacket = exports.protocol = void 0;
+const encodePacket_js_1 = require("./encodePacket.js");
+exports.encodePacket = encodePacket_js_1.default;
+const decodePacket_js_1 = require("./decodePacket.js");
+exports.decodePacket = decodePacket_js_1.default;
+const SEPARATOR = String.fromCharCode(30); // see https://en.wikipedia.org/wiki/Delimiter#ASCII_delimited_text
+const encodePayload = (packets, callback) => {
+    // some packets may be added to the array while encoding, so the initial length must be saved
+    const length = packets.length;
+    const encodedPackets = new Array(length);
+    let count = 0;
+    packets.forEach((packet, i) => {
+        // force base64 encoding for binary packets
+        (0, encodePacket_js_1.default)(packet, false, encodedPacket => {
+            encodedPackets[i] = encodedPacket;
+            if (++count === length) {
+                callback(encodedPackets.join(SEPARATOR));
+            }
+        });
+    });
+};
+exports.encodePayload = encodePayload;
+const decodePayload = (encodedPayload, binaryType) => {
+    const encodedPackets = encodedPayload.split(SEPARATOR);
+    const packets = [];
+    for (let i = 0; i < encodedPackets.length; i++) {
+        const decodedPacket = (0, decodePacket_js_1.default)(encodedPackets[i], binaryType);
+        packets.push(decodedPacket);
+        if (decodedPacket.type === "error") {
+            break;
+        }
+    }
+    return packets;
+};
+exports.decodePayload = decodePayload;
+exports.protocol = 4;
+
+},{"./decodePacket.js":61,"./encodePacket.js":62}],64:[function(require,module,exports){
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
@@ -20626,7 +23456,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],42:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 //! moment.js
 //! version : 2.29.4
 //! authors : Tim Wood, Iskren Chernev, Moment.js contributors
@@ -26313,7 +29143,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 
 })));
 
-},{}],43:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 var murmur3 = require("./murmurhash3_gc.js")
 var murmur2 = require("./murmurhash2_gc.js")
 
@@ -26321,7 +29151,7 @@ module.exports = murmur3
 module.exports.murmur3 = murmur3
 module.exports.murmur2 = murmur2
 
-},{"./murmurhash2_gc.js":44,"./murmurhash3_gc.js":45}],44:[function(require,module,exports){
+},{"./murmurhash2_gc.js":67,"./murmurhash3_gc.js":68}],67:[function(require,module,exports){
 /**
  * JS Implementation of MurmurHash2
  * 
@@ -26377,7 +29207,7 @@ if(typeof module !== undefined) {
   module.exports = murmurhash2_32_gc
 }
 
-},{}],45:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 /**
  * JS Implementation of MurmurHash3 (r136) (as of May 20, 2011)
  * 
@@ -26446,7 +29276,7 @@ function murmurhash3_32_gc(key, seed) {
 if(typeof module !== "undefined") {
   module.exports = murmurhash3_32_gc
 }
-},{}],46:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -26632,9 +29462,1703 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],47:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 var defaultPalette={50:["#FFEBEE","#FCE4EC","#F3E5F5","#EDE7F6","#E8EAF6","#E3F2FD","#E1F5FE","#E0F7FA","#E0F2F1","#E8F5E9","#F1F8E9","#F9FBE7","#FFFDE7","#FFF8E1","#FFF3E0","#FBE9E7","#EFEBE9","#FAFAFA","#ECEFF1"],100:["#FFCDD2","#F8BBD0","#E1BEE7","#D1C4E9","#C5CAE9","#BBDEFB","#B3E5FC","#B2EBF2","#B2DFDB","#C8E6C9","#DCEDC8","#F0F4C3","#FFF9C4","#FFECB3","#FFE0B2","#FFCCBC","#D7CCC8","#F5F5F5","#CFD8DC"],200:["#EF9A9A","#F48FB1","#CE93D8","#B39DDB","#9FA8DA","#90CAF9","#81D4FA","#80DEEA","#80CBC4","#A5D6A7","#C5E1A5","#E6EE9C","#FFF59D","#FFE082","#FFCC80","#FFAB91","#BCAAA4","#EEEEEE","#B0BEC5"],300:["#E57373","#F06292","#BA68C8","#9575CD","#7986CB","#64B5F6","#4FC3F7","#4DD0E1","#4DB6AC","#81C784","#AED581","#DCE775","#FFF176","#FFD54F","#FFB74D","#FF8A65","#A1887F","#E0E0E0","#90A4AE"],400:["#EF5350","#EC407A","#AB47BC","#7E57C2","#5C6BC0","#42A5F5","#29B6F6","#26C6DA","#26A69A","#66BB6A","#9CCC65","#D4E157","#FFEE58","#FFCA28","#FFA726","#FF7043","#8D6E63","#BDBDBD","#78909C"],500:["#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#2196F3","#03A9F4","#00BCD4","#009688","#4CAF50","#8BC34A","#CDDC39","#FFEB3B","#FFC107","#FF9800","#FF5722","#795548","#9E9E9E","#607D8B"],600:["#E53935","#D81B60","#8E24AA","#5E35B1","#3949AB","#1E88E5","#039BE5","#00ACC1","#00897B","#43A047","#7CB342","#C0CA33","#FDD835","#FFB300","#FB8C00","#F4511E","#6D4C41","#757575","#546E7A"],700:["#D32F2F","#C2185B","#7B1FA2","#512DA8","#303F9F","#1976D2","#0288D1","#0097A7","#00796B","#388E3C","#689F38","#AFB42B","#FBC02D","#FFA000","#F57C00","#E64A19","#5D4037","#616161","#455A64"],800:["#C62828","#AD1457","#6A1B9A","#4527A0","#283593","#1565C0","#0277BD","#00838F","#00695C","#2E7D32","#558B2F","#9E9D24","#F9A825","#FF8F00","#EF6C00","#D84315","#4E342E","#424242","#37474F"],900:["#B71C1C","#880E4F","#4A148C","#311B92","#1A237E","#0D47A1","#01579B","#006064","#004D40","#1B5E20","#33691E","#827717","#F57F17","#FF6F00","#E65100","#BF360C","#3E2723","#212121","#263238"],A100:["#FF8A80","#FF80AB","#EA80FC","#B388FF","#8C9EFF","#82B1FF","#80D8FF","#84FFFF","#A7FFEB","#B9F6CA","#CCFF90","#F4FF81","#FFFF8D","#FFE57F","#FFD180","#FF9E80"],A200:["#FF5252","#FF4081","#E040FB","#7C4DFF","#536DFE","#448AFF","#40C4FF","#18FFFF","#64FFDA","#69F0AE","#B2FF59","#EEFF41","#FFFF00","#FFD740","#FFAB40","#FF6E40"],A400:["#FF1744","#F50057","#D500F9","#651FFF","#3D5AFE","#2979FF","#00B0FF","#00E5FF","#1DE9B6","#00E676","#76FF03","#C6FF00","#FFEA00","#FFC400","#FF9100","#FF3D00"],A700:["#D50000","#C51162","#AA00FF","#6200EA","#304FFE","#2962FF","#0091EA","#00B8D4","#00BFA5","#00C853","#64DD17","#AEEA00","#FFD600","#FFAB00","#FF6D00","#DD2C00"]},murmur=require("murmurhash-js");module.exports=function(){var F=[],E={shades:["500"],palette:defaultPalette,text:null,ignoreColors:[]},C=function(C){C||(C=E),C.palette||(C.palette=defaultPalette),C.shades||(C.shades=["500"]);for(var B,D=F.length,t=0;t<D;t++)if(C.text&&F[t].text===C.text)return F[t].color;return B=A(C),C.text&&F.push({text:C.text,color:B}),B},A=function(F){var E="",C="";E=F.text?F.shades[D(F.text,F.shades.length)]:F.shades[B(F.shades.length)];for(var A in F.palette)F.palette.hasOwnProperty(A)&&A===E&&(C=F.text?F.palette[A][D(F.text,F.palette[A].length)]:F.palette[A][B(F.palette[A].length)]);return C},B=function(F){return Math.floor(Math.random()*F)},D=function(F,E){var C=murmur.murmur3(F)/1e10;return C<.1&&(C=10*C),Math.floor(C*E)};return{getColor:C}}();
-},{"murmurhash-js":43}],48:[function(require,module,exports){
+},{"murmurhash-js":66}],71:[function(require,module,exports){
+"use strict";
+/**
+ * Initialize backoff timer with `opts`.
+ *
+ * - `min` initial timeout in milliseconds [100]
+ * - `max` max timeout [10000]
+ * - `jitter` [0]
+ * - `factor` [2]
+ *
+ * @param {Object} opts
+ * @api public
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Backoff = void 0;
+function Backoff(opts) {
+    opts = opts || {};
+    this.ms = opts.min || 100;
+    this.max = opts.max || 10000;
+    this.factor = opts.factor || 2;
+    this.jitter = opts.jitter > 0 && opts.jitter <= 1 ? opts.jitter : 0;
+    this.attempts = 0;
+}
+exports.Backoff = Backoff;
+/**
+ * Return the backoff duration.
+ *
+ * @return {Number}
+ * @api public
+ */
+Backoff.prototype.duration = function () {
+    var ms = this.ms * Math.pow(this.factor, this.attempts++);
+    if (this.jitter) {
+        var rand = Math.random();
+        var deviation = Math.floor(rand * this.jitter * ms);
+        ms = (Math.floor(rand * 10) & 1) == 0 ? ms - deviation : ms + deviation;
+    }
+    return Math.min(ms, this.max) | 0;
+};
+/**
+ * Reset the number of attempts.
+ *
+ * @api public
+ */
+Backoff.prototype.reset = function () {
+    this.attempts = 0;
+};
+/**
+ * Set the minimum duration
+ *
+ * @api public
+ */
+Backoff.prototype.setMin = function (min) {
+    this.ms = min;
+};
+/**
+ * Set the maximum duration
+ *
+ * @api public
+ */
+Backoff.prototype.setMax = function (max) {
+    this.max = max;
+};
+/**
+ * Set the jitter
+ *
+ * @api public
+ */
+Backoff.prototype.setJitter = function (jitter) {
+    this.jitter = jitter;
+};
+
+},{}],72:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = exports.connect = exports.io = exports.Socket = exports.Manager = exports.protocol = void 0;
+const url_js_1 = require("./url.js");
+const manager_js_1 = require("./manager.js");
+Object.defineProperty(exports, "Manager", { enumerable: true, get: function () { return manager_js_1.Manager; } });
+const socket_js_1 = require("./socket.js");
+Object.defineProperty(exports, "Socket", { enumerable: true, get: function () { return socket_js_1.Socket; } });
+const debug_1 = __importDefault(require("debug")); // debug()
+const debug = debug_1.default("socket.io-client"); // debug()
+/**
+ * Managers cache.
+ */
+const cache = {};
+function lookup(uri, opts) {
+    if (typeof uri === "object") {
+        opts = uri;
+        uri = undefined;
+    }
+    opts = opts || {};
+    const parsed = url_js_1.url(uri, opts.path || "/socket.io");
+    const source = parsed.source;
+    const id = parsed.id;
+    const path = parsed.path;
+    const sameNamespace = cache[id] && path in cache[id]["nsps"];
+    const newConnection = opts.forceNew ||
+        opts["force new connection"] ||
+        false === opts.multiplex ||
+        sameNamespace;
+    let io;
+    if (newConnection) {
+        debug("ignoring socket cache for %s", source);
+        io = new manager_js_1.Manager(source, opts);
+    }
+    else {
+        if (!cache[id]) {
+            debug("new io instance for %s", source);
+            cache[id] = new manager_js_1.Manager(source, opts);
+        }
+        io = cache[id];
+    }
+    if (parsed.query && !opts.query) {
+        opts.query = parsed.queryKey;
+    }
+    return io.socket(parsed.path, opts);
+}
+exports.io = lookup;
+exports.connect = lookup;
+exports.default = lookup;
+// so that "lookup" can be used both as a function (e.g. `io(...)`) and as a
+// namespace (e.g. `io.connect(...)`), for backward compatibility
+Object.assign(lookup, {
+    Manager: manager_js_1.Manager,
+    Socket: socket_js_1.Socket,
+    io: lookup,
+    connect: lookup,
+});
+/**
+ * Protocol version.
+ *
+ * @public
+ */
+var socket_io_parser_1 = require("socket.io-parser");
+Object.defineProperty(exports, "protocol", { enumerable: true, get: function () { return socket_io_parser_1.protocol; } });
+
+module.exports = lookup;
+
+},{"./manager.js":73,"./socket.js":75,"./url.js":76,"debug":43,"socket.io-parser":78}],73:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Manager = void 0;
+const engine_io_client_1 = require("engine.io-client");
+const socket_js_1 = require("./socket.js");
+const parser = __importStar(require("socket.io-parser"));
+const on_js_1 = require("./on.js");
+const backo2_js_1 = require("./contrib/backo2.js");
+const component_emitter_1 = require("@socket.io/component-emitter");
+const debug_1 = __importDefault(require("debug")); // debug()
+const debug = debug_1.default("socket.io-client:manager"); // debug()
+class Manager extends component_emitter_1.Emitter {
+    constructor(uri, opts) {
+        var _a;
+        super();
+        this.nsps = {};
+        this.subs = [];
+        if (uri && "object" === typeof uri) {
+            opts = uri;
+            uri = undefined;
+        }
+        opts = opts || {};
+        opts.path = opts.path || "/socket.io";
+        this.opts = opts;
+        engine_io_client_1.installTimerFunctions(this, opts);
+        this.reconnection(opts.reconnection !== false);
+        this.reconnectionAttempts(opts.reconnectionAttempts || Infinity);
+        this.reconnectionDelay(opts.reconnectionDelay || 1000);
+        this.reconnectionDelayMax(opts.reconnectionDelayMax || 5000);
+        this.randomizationFactor((_a = opts.randomizationFactor) !== null && _a !== void 0 ? _a : 0.5);
+        this.backoff = new backo2_js_1.Backoff({
+            min: this.reconnectionDelay(),
+            max: this.reconnectionDelayMax(),
+            jitter: this.randomizationFactor(),
+        });
+        this.timeout(null == opts.timeout ? 20000 : opts.timeout);
+        this._readyState = "closed";
+        this.uri = uri;
+        const _parser = opts.parser || parser;
+        this.encoder = new _parser.Encoder();
+        this.decoder = new _parser.Decoder();
+        this._autoConnect = opts.autoConnect !== false;
+        if (this._autoConnect)
+            this.open();
+    }
+    reconnection(v) {
+        if (!arguments.length)
+            return this._reconnection;
+        this._reconnection = !!v;
+        return this;
+    }
+    reconnectionAttempts(v) {
+        if (v === undefined)
+            return this._reconnectionAttempts;
+        this._reconnectionAttempts = v;
+        return this;
+    }
+    reconnectionDelay(v) {
+        var _a;
+        if (v === undefined)
+            return this._reconnectionDelay;
+        this._reconnectionDelay = v;
+        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMin(v);
+        return this;
+    }
+    randomizationFactor(v) {
+        var _a;
+        if (v === undefined)
+            return this._randomizationFactor;
+        this._randomizationFactor = v;
+        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setJitter(v);
+        return this;
+    }
+    reconnectionDelayMax(v) {
+        var _a;
+        if (v === undefined)
+            return this._reconnectionDelayMax;
+        this._reconnectionDelayMax = v;
+        (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMax(v);
+        return this;
+    }
+    timeout(v) {
+        if (!arguments.length)
+            return this._timeout;
+        this._timeout = v;
+        return this;
+    }
+    /**
+     * Starts trying to reconnect if reconnection is enabled and we have not
+     * started reconnecting yet
+     *
+     * @private
+     */
+    maybeReconnectOnOpen() {
+        // Only try to reconnect if it's the first time we're connecting
+        if (!this._reconnecting &&
+            this._reconnection &&
+            this.backoff.attempts === 0) {
+            // keeps reconnection from firing twice for the same reconnection loop
+            this.reconnect();
+        }
+    }
+    /**
+     * Sets the current transport `socket`.
+     *
+     * @param {Function} fn - optional, callback
+     * @return self
+     * @public
+     */
+    open(fn) {
+        debug("readyState %s", this._readyState);
+        if (~this._readyState.indexOf("open"))
+            return this;
+        debug("opening %s", this.uri);
+        this.engine = new engine_io_client_1.Socket(this.uri, this.opts);
+        const socket = this.engine;
+        const self = this;
+        this._readyState = "opening";
+        this.skipReconnect = false;
+        // emit `open`
+        const openSubDestroy = on_js_1.on(socket, "open", function () {
+            self.onopen();
+            fn && fn();
+        });
+        // emit `error`
+        const errorSub = on_js_1.on(socket, "error", (err) => {
+            debug("error");
+            self.cleanup();
+            self._readyState = "closed";
+            this.emitReserved("error", err);
+            if (fn) {
+                fn(err);
+            }
+            else {
+                // Only do this if there is no fn to handle the error
+                self.maybeReconnectOnOpen();
+            }
+        });
+        if (false !== this._timeout) {
+            const timeout = this._timeout;
+            debug("connect attempt will timeout after %d", timeout);
+            if (timeout === 0) {
+                openSubDestroy(); // prevents a race condition with the 'open' event
+            }
+            // set timer
+            const timer = this.setTimeoutFn(() => {
+                debug("connect attempt timed out after %d", timeout);
+                openSubDestroy();
+                socket.close();
+                // @ts-ignore
+                socket.emit("error", new Error("timeout"));
+            }, timeout);
+            if (this.opts.autoUnref) {
+                timer.unref();
+            }
+            this.subs.push(function subDestroy() {
+                clearTimeout(timer);
+            });
+        }
+        this.subs.push(openSubDestroy);
+        this.subs.push(errorSub);
+        return this;
+    }
+    /**
+     * Alias for open()
+     *
+     * @return self
+     * @public
+     */
+    connect(fn) {
+        return this.open(fn);
+    }
+    /**
+     * Called upon transport open.
+     *
+     * @private
+     */
+    onopen() {
+        debug("open");
+        // clear old subs
+        this.cleanup();
+        // mark as open
+        this._readyState = "open";
+        this.emitReserved("open");
+        // add new subs
+        const socket = this.engine;
+        this.subs.push(on_js_1.on(socket, "ping", this.onping.bind(this)), on_js_1.on(socket, "data", this.ondata.bind(this)), on_js_1.on(socket, "error", this.onerror.bind(this)), on_js_1.on(socket, "close", this.onclose.bind(this)), on_js_1.on(this.decoder, "decoded", this.ondecoded.bind(this)));
+    }
+    /**
+     * Called upon a ping.
+     *
+     * @private
+     */
+    onping() {
+        this.emitReserved("ping");
+    }
+    /**
+     * Called with data.
+     *
+     * @private
+     */
+    ondata(data) {
+        try {
+            this.decoder.add(data);
+        }
+        catch (e) {
+            this.onclose("parse error");
+        }
+    }
+    /**
+     * Called when parser fully decodes a packet.
+     *
+     * @private
+     */
+    ondecoded(packet) {
+        this.emitReserved("packet", packet);
+    }
+    /**
+     * Called upon socket error.
+     *
+     * @private
+     */
+    onerror(err) {
+        debug("error", err);
+        this.emitReserved("error", err);
+    }
+    /**
+     * Creates a new socket for the given `nsp`.
+     *
+     * @return {Socket}
+     * @public
+     */
+    socket(nsp, opts) {
+        let socket = this.nsps[nsp];
+        if (!socket) {
+            socket = new socket_js_1.Socket(this, nsp, opts);
+            this.nsps[nsp] = socket;
+        }
+        return socket;
+    }
+    /**
+     * Called upon a socket close.
+     *
+     * @param socket
+     * @private
+     */
+    _destroy(socket) {
+        const nsps = Object.keys(this.nsps);
+        for (const nsp of nsps) {
+            const socket = this.nsps[nsp];
+            if (socket.active) {
+                debug("socket %s is still active, skipping close", nsp);
+                return;
+            }
+        }
+        this._close();
+    }
+    /**
+     * Writes a packet.
+     *
+     * @param packet
+     * @private
+     */
+    _packet(packet) {
+        debug("writing packet %j", packet);
+        const encodedPackets = this.encoder.encode(packet);
+        for (let i = 0; i < encodedPackets.length; i++) {
+            this.engine.write(encodedPackets[i], packet.options);
+        }
+    }
+    /**
+     * Clean up transport subscriptions and packet buffer.
+     *
+     * @private
+     */
+    cleanup() {
+        debug("cleanup");
+        this.subs.forEach((subDestroy) => subDestroy());
+        this.subs.length = 0;
+        this.decoder.destroy();
+    }
+    /**
+     * Close the current socket.
+     *
+     * @private
+     */
+    _close() {
+        debug("disconnect");
+        this.skipReconnect = true;
+        this._reconnecting = false;
+        this.onclose("forced close");
+        if (this.engine)
+            this.engine.close();
+    }
+    /**
+     * Alias for close()
+     *
+     * @private
+     */
+    disconnect() {
+        return this._close();
+    }
+    /**
+     * Called upon engine close.
+     *
+     * @private
+     */
+    onclose(reason, description) {
+        debug("closed due to %s", reason);
+        this.cleanup();
+        this.backoff.reset();
+        this._readyState = "closed";
+        this.emitReserved("close", reason, description);
+        if (this._reconnection && !this.skipReconnect) {
+            this.reconnect();
+        }
+    }
+    /**
+     * Attempt a reconnection.
+     *
+     * @private
+     */
+    reconnect() {
+        if (this._reconnecting || this.skipReconnect)
+            return this;
+        const self = this;
+        if (this.backoff.attempts >= this._reconnectionAttempts) {
+            debug("reconnect failed");
+            this.backoff.reset();
+            this.emitReserved("reconnect_failed");
+            this._reconnecting = false;
+        }
+        else {
+            const delay = this.backoff.duration();
+            debug("will wait %dms before reconnect attempt", delay);
+            this._reconnecting = true;
+            const timer = this.setTimeoutFn(() => {
+                if (self.skipReconnect)
+                    return;
+                debug("attempting reconnect");
+                this.emitReserved("reconnect_attempt", self.backoff.attempts);
+                // check again for the case socket closed in above events
+                if (self.skipReconnect)
+                    return;
+                self.open((err) => {
+                    if (err) {
+                        debug("reconnect attempt error");
+                        self._reconnecting = false;
+                        self.reconnect();
+                        this.emitReserved("reconnect_error", err);
+                    }
+                    else {
+                        debug("reconnect success");
+                        self.onreconnect();
+                    }
+                });
+            }, delay);
+            if (this.opts.autoUnref) {
+                timer.unref();
+            }
+            this.subs.push(function subDestroy() {
+                clearTimeout(timer);
+            });
+        }
+    }
+    /**
+     * Called upon successful reconnect.
+     *
+     * @private
+     */
+    onreconnect() {
+        const attempt = this.backoff.attempts;
+        this._reconnecting = false;
+        this.backoff.reset();
+        this.emitReserved("reconnect", attempt);
+    }
+}
+exports.Manager = Manager;
+
+},{"./contrib/backo2.js":71,"./on.js":74,"./socket.js":75,"@socket.io/component-emitter":6,"debug":43,"engine.io-client":50,"socket.io-parser":78}],74:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.on = void 0;
+function on(obj, ev, fn) {
+    obj.on(ev, fn);
+    return function subDestroy() {
+        obj.off(ev, fn);
+    };
+}
+exports.on = on;
+
+},{}],75:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Socket = void 0;
+const socket_io_parser_1 = require("socket.io-parser");
+const on_js_1 = require("./on.js");
+const component_emitter_1 = require("@socket.io/component-emitter");
+const debug_1 = __importDefault(require("debug")); // debug()
+const debug = debug_1.default("socket.io-client:socket"); // debug()
+/**
+ * Internal events.
+ * These events can't be emitted by the user.
+ */
+const RESERVED_EVENTS = Object.freeze({
+    connect: 1,
+    connect_error: 1,
+    disconnect: 1,
+    disconnecting: 1,
+    // EventEmitter reserved events: https://nodejs.org/api/events.html#events_event_newlistener
+    newListener: 1,
+    removeListener: 1,
+});
+class Socket extends component_emitter_1.Emitter {
+    /**
+     * `Socket` constructor.
+     *
+     * @public
+     */
+    constructor(io, nsp, opts) {
+        super();
+        this.connected = false;
+        this.receiveBuffer = [];
+        this.sendBuffer = [];
+        this.ids = 0;
+        this.acks = {};
+        this.flags = {};
+        this.io = io;
+        this.nsp = nsp;
+        if (opts && opts.auth) {
+            this.auth = opts.auth;
+        }
+        if (this.io._autoConnect)
+            this.open();
+    }
+    /**
+     * Whether the socket is currently disconnected
+     */
+    get disconnected() {
+        return !this.connected;
+    }
+    /**
+     * Subscribe to open, close and packet events
+     *
+     * @private
+     */
+    subEvents() {
+        if (this.subs)
+            return;
+        const io = this.io;
+        this.subs = [
+            on_js_1.on(io, "open", this.onopen.bind(this)),
+            on_js_1.on(io, "packet", this.onpacket.bind(this)),
+            on_js_1.on(io, "error", this.onerror.bind(this)),
+            on_js_1.on(io, "close", this.onclose.bind(this)),
+        ];
+    }
+    /**
+     * Whether the Socket will try to reconnect when its Manager connects or reconnects
+     */
+    get active() {
+        return !!this.subs;
+    }
+    /**
+     * "Opens" the socket.
+     *
+     * @public
+     */
+    connect() {
+        if (this.connected)
+            return this;
+        this.subEvents();
+        if (!this.io["_reconnecting"])
+            this.io.open(); // ensure open
+        if ("open" === this.io._readyState)
+            this.onopen();
+        return this;
+    }
+    /**
+     * Alias for connect()
+     */
+    open() {
+        return this.connect();
+    }
+    /**
+     * Sends a `message` event.
+     *
+     * @return self
+     * @public
+     */
+    send(...args) {
+        args.unshift("message");
+        this.emit.apply(this, args);
+        return this;
+    }
+    /**
+     * Override `emit`.
+     * If the event is in `events`, it's emitted normally.
+     *
+     * @return self
+     * @public
+     */
+    emit(ev, ...args) {
+        if (RESERVED_EVENTS.hasOwnProperty(ev)) {
+            throw new Error('"' + ev.toString() + '" is a reserved event name');
+        }
+        args.unshift(ev);
+        const packet = {
+            type: socket_io_parser_1.PacketType.EVENT,
+            data: args,
+        };
+        packet.options = {};
+        packet.options.compress = this.flags.compress !== false;
+        // event ack callback
+        if ("function" === typeof args[args.length - 1]) {
+            const id = this.ids++;
+            debug("emitting packet with ack id %d", id);
+            const ack = args.pop();
+            this._registerAckCallback(id, ack);
+            packet.id = id;
+        }
+        const isTransportWritable = this.io.engine &&
+            this.io.engine.transport &&
+            this.io.engine.transport.writable;
+        const discardPacket = this.flags.volatile && (!isTransportWritable || !this.connected);
+        if (discardPacket) {
+            debug("discard packet as the transport is not currently writable");
+        }
+        else if (this.connected) {
+            this.notifyOutgoingListeners(packet);
+            this.packet(packet);
+        }
+        else {
+            this.sendBuffer.push(packet);
+        }
+        this.flags = {};
+        return this;
+    }
+    /**
+     * @private
+     */
+    _registerAckCallback(id, ack) {
+        const timeout = this.flags.timeout;
+        if (timeout === undefined) {
+            this.acks[id] = ack;
+            return;
+        }
+        // @ts-ignore
+        const timer = this.io.setTimeoutFn(() => {
+            delete this.acks[id];
+            for (let i = 0; i < this.sendBuffer.length; i++) {
+                if (this.sendBuffer[i].id === id) {
+                    debug("removing packet with ack id %d from the buffer", id);
+                    this.sendBuffer.splice(i, 1);
+                }
+            }
+            debug("event with ack id %d has timed out after %d ms", id, timeout);
+            ack.call(this, new Error("operation has timed out"));
+        }, timeout);
+        this.acks[id] = (...args) => {
+            // @ts-ignore
+            this.io.clearTimeoutFn(timer);
+            ack.apply(this, [null, ...args]);
+        };
+    }
+    /**
+     * Sends a packet.
+     *
+     * @param packet
+     * @private
+     */
+    packet(packet) {
+        packet.nsp = this.nsp;
+        this.io._packet(packet);
+    }
+    /**
+     * Called upon engine `open`.
+     *
+     * @private
+     */
+    onopen() {
+        debug("transport is open - connecting");
+        if (typeof this.auth == "function") {
+            this.auth((data) => {
+                this.packet({ type: socket_io_parser_1.PacketType.CONNECT, data });
+            });
+        }
+        else {
+            this.packet({ type: socket_io_parser_1.PacketType.CONNECT, data: this.auth });
+        }
+    }
+    /**
+     * Called upon engine or manager `error`.
+     *
+     * @param err
+     * @private
+     */
+    onerror(err) {
+        if (!this.connected) {
+            this.emitReserved("connect_error", err);
+        }
+    }
+    /**
+     * Called upon engine `close`.
+     *
+     * @param reason
+     * @param description
+     * @private
+     */
+    onclose(reason, description) {
+        debug("close (%s)", reason);
+        this.connected = false;
+        delete this.id;
+        this.emitReserved("disconnect", reason, description);
+    }
+    /**
+     * Called with socket packet.
+     *
+     * @param packet
+     * @private
+     */
+    onpacket(packet) {
+        const sameNamespace = packet.nsp === this.nsp;
+        if (!sameNamespace)
+            return;
+        switch (packet.type) {
+            case socket_io_parser_1.PacketType.CONNECT:
+                if (packet.data && packet.data.sid) {
+                    const id = packet.data.sid;
+                    this.onconnect(id);
+                }
+                else {
+                    this.emitReserved("connect_error", new Error("It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, but they are not compatible (more information here: https://socket.io/docs/v3/migrating-from-2-x-to-3-0/)"));
+                }
+                break;
+            case socket_io_parser_1.PacketType.EVENT:
+            case socket_io_parser_1.PacketType.BINARY_EVENT:
+                this.onevent(packet);
+                break;
+            case socket_io_parser_1.PacketType.ACK:
+            case socket_io_parser_1.PacketType.BINARY_ACK:
+                this.onack(packet);
+                break;
+            case socket_io_parser_1.PacketType.DISCONNECT:
+                this.ondisconnect();
+                break;
+            case socket_io_parser_1.PacketType.CONNECT_ERROR:
+                this.destroy();
+                const err = new Error(packet.data.message);
+                // @ts-ignore
+                err.data = packet.data.data;
+                this.emitReserved("connect_error", err);
+                break;
+        }
+    }
+    /**
+     * Called upon a server event.
+     *
+     * @param packet
+     * @private
+     */
+    onevent(packet) {
+        const args = packet.data || [];
+        debug("emitting event %j", args);
+        if (null != packet.id) {
+            debug("attaching ack callback to event");
+            args.push(this.ack(packet.id));
+        }
+        if (this.connected) {
+            this.emitEvent(args);
+        }
+        else {
+            this.receiveBuffer.push(Object.freeze(args));
+        }
+    }
+    emitEvent(args) {
+        if (this._anyListeners && this._anyListeners.length) {
+            const listeners = this._anyListeners.slice();
+            for (const listener of listeners) {
+                listener.apply(this, args);
+            }
+        }
+        super.emit.apply(this, args);
+    }
+    /**
+     * Produces an ack callback to emit with an event.
+     *
+     * @private
+     */
+    ack(id) {
+        const self = this;
+        let sent = false;
+        return function (...args) {
+            // prevent double callbacks
+            if (sent)
+                return;
+            sent = true;
+            debug("sending ack %j", args);
+            self.packet({
+                type: socket_io_parser_1.PacketType.ACK,
+                id: id,
+                data: args,
+            });
+        };
+    }
+    /**
+     * Called upon a server acknowlegement.
+     *
+     * @param packet
+     * @private
+     */
+    onack(packet) {
+        const ack = this.acks[packet.id];
+        if ("function" === typeof ack) {
+            debug("calling ack %s with %j", packet.id, packet.data);
+            ack.apply(this, packet.data);
+            delete this.acks[packet.id];
+        }
+        else {
+            debug("bad ack %s", packet.id);
+        }
+    }
+    /**
+     * Called upon server connect.
+     *
+     * @private
+     */
+    onconnect(id) {
+        debug("socket connected with id %s", id);
+        this.id = id;
+        this.connected = true;
+        this.emitBuffered();
+        this.emitReserved("connect");
+    }
+    /**
+     * Emit buffered events (received and emitted).
+     *
+     * @private
+     */
+    emitBuffered() {
+        this.receiveBuffer.forEach((args) => this.emitEvent(args));
+        this.receiveBuffer = [];
+        this.sendBuffer.forEach((packet) => {
+            this.notifyOutgoingListeners(packet);
+            this.packet(packet);
+        });
+        this.sendBuffer = [];
+    }
+    /**
+     * Called upon server disconnect.
+     *
+     * @private
+     */
+    ondisconnect() {
+        debug("server disconnect (%s)", this.nsp);
+        this.destroy();
+        this.onclose("io server disconnect");
+    }
+    /**
+     * Called upon forced client/server side disconnections,
+     * this method ensures the manager stops tracking us and
+     * that reconnections don't get triggered for this.
+     *
+     * @private
+     */
+    destroy() {
+        if (this.subs) {
+            // clean subscriptions to avoid reconnections
+            this.subs.forEach((subDestroy) => subDestroy());
+            this.subs = undefined;
+        }
+        this.io["_destroy"](this);
+    }
+    /**
+     * Disconnects the socket manually.
+     *
+     * @return self
+     * @public
+     */
+    disconnect() {
+        if (this.connected) {
+            debug("performing disconnect (%s)", this.nsp);
+            this.packet({ type: socket_io_parser_1.PacketType.DISCONNECT });
+        }
+        // remove socket from pool
+        this.destroy();
+        if (this.connected) {
+            // fire events
+            this.onclose("io client disconnect");
+        }
+        return this;
+    }
+    /**
+     * Alias for disconnect()
+     *
+     * @return self
+     * @public
+     */
+    close() {
+        return this.disconnect();
+    }
+    /**
+     * Sets the compress flag.
+     *
+     * @param compress - if `true`, compresses the sending data
+     * @return self
+     * @public
+     */
+    compress(compress) {
+        this.flags.compress = compress;
+        return this;
+    }
+    /**
+     * Sets a modifier for a subsequent event emission that the event message will be dropped when this socket is not
+     * ready to send messages.
+     *
+     * @returns self
+     * @public
+     */
+    get volatile() {
+        this.flags.volatile = true;
+        return this;
+    }
+    /**
+     * Sets a modifier for a subsequent event emission that the callback will be called with an error when the
+     * given number of milliseconds have elapsed without an acknowledgement from the server:
+     *
+     * ```
+     * socket.timeout(5000).emit("my-event", (err) => {
+     *   if (err) {
+     *     // the server did not acknowledge the event in the given delay
+     *   }
+     * });
+     * ```
+     *
+     * @returns self
+     * @public
+     */
+    timeout(timeout) {
+        this.flags.timeout = timeout;
+        return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback.
+     *
+     * @param listener
+     * @public
+     */
+    onAny(listener) {
+        this._anyListeners = this._anyListeners || [];
+        this._anyListeners.push(listener);
+        return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback. The listener is added to the beginning of the listeners array.
+     *
+     * @param listener
+     * @public
+     */
+    prependAny(listener) {
+        this._anyListeners = this._anyListeners || [];
+        this._anyListeners.unshift(listener);
+        return this;
+    }
+    /**
+     * Removes the listener that will be fired when any event is emitted.
+     *
+     * @param listener
+     * @public
+     */
+    offAny(listener) {
+        if (!this._anyListeners) {
+            return this;
+        }
+        if (listener) {
+            const listeners = this._anyListeners;
+            for (let i = 0; i < listeners.length; i++) {
+                if (listener === listeners[i]) {
+                    listeners.splice(i, 1);
+                    return this;
+                }
+            }
+        }
+        else {
+            this._anyListeners = [];
+        }
+        return this;
+    }
+    /**
+     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
+     * e.g. to remove listeners.
+     *
+     * @public
+     */
+    listenersAny() {
+        return this._anyListeners || [];
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback.
+     *
+     * @param listener
+     *
+     * <pre><code>
+     *
+     * socket.onAnyOutgoing((event, ...args) => {
+     *   console.log(event);
+     * });
+     *
+     * </pre></code>
+     *
+     * @public
+     */
+    onAnyOutgoing(listener) {
+        this._anyOutgoingListeners = this._anyOutgoingListeners || [];
+        this._anyOutgoingListeners.push(listener);
+        return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback. The listener is added to the beginning of the listeners array.
+     *
+     * @param listener
+     *
+     * <pre><code>
+     *
+     * socket.prependAnyOutgoing((event, ...args) => {
+     *   console.log(event);
+     * });
+     *
+     * </pre></code>
+     *
+     * @public
+     */
+    prependAnyOutgoing(listener) {
+        this._anyOutgoingListeners = this._anyOutgoingListeners || [];
+        this._anyOutgoingListeners.unshift(listener);
+        return this;
+    }
+    /**
+     * Removes the listener that will be fired when any event is emitted.
+     *
+     * @param listener
+     *
+     * <pre><code>
+     *
+     * const handler = (event, ...args) => {
+     *   console.log(event);
+     * }
+     *
+     * socket.onAnyOutgoing(handler);
+     *
+     * // then later
+     * socket.offAnyOutgoing(handler);
+     *
+     * </pre></code>
+     *
+     * @public
+     */
+    offAnyOutgoing(listener) {
+        if (!this._anyOutgoingListeners) {
+            return this;
+        }
+        if (listener) {
+            const listeners = this._anyOutgoingListeners;
+            for (let i = 0; i < listeners.length; i++) {
+                if (listener === listeners[i]) {
+                    listeners.splice(i, 1);
+                    return this;
+                }
+            }
+        }
+        else {
+            this._anyOutgoingListeners = [];
+        }
+        return this;
+    }
+    /**
+     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
+     * e.g. to remove listeners.
+     *
+     * @public
+     */
+    listenersAnyOutgoing() {
+        return this._anyOutgoingListeners || [];
+    }
+    /**
+     * Notify the listeners for each packet sent
+     *
+     * @param packet
+     *
+     * @private
+     */
+    notifyOutgoingListeners(packet) {
+        if (this._anyOutgoingListeners && this._anyOutgoingListeners.length) {
+            const listeners = this._anyOutgoingListeners.slice();
+            for (const listener of listeners) {
+                listener.apply(this, packet.data);
+            }
+        }
+    }
+}
+exports.Socket = Socket;
+
+},{"./on.js":74,"@socket.io/component-emitter":6,"debug":43,"socket.io-parser":78}],76:[function(require,module,exports){
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.url = void 0;
+const engine_io_client_1 = require("engine.io-client");
+const debug_1 = __importDefault(require("debug")); // debug()
+const debug = debug_1.default("socket.io-client:url"); // debug()
+/**
+ * URL parser.
+ *
+ * @param uri - url
+ * @param path - the request path of the connection
+ * @param loc - An object meant to mimic window.location.
+ *        Defaults to window.location.
+ * @public
+ */
+function url(uri, path = "", loc) {
+    let obj = uri;
+    // default to window.location
+    loc = loc || (typeof location !== "undefined" && location);
+    if (null == uri)
+        uri = loc.protocol + "//" + loc.host;
+    // relative path support
+    if (typeof uri === "string") {
+        if ("/" === uri.charAt(0)) {
+            if ("/" === uri.charAt(1)) {
+                uri = loc.protocol + uri;
+            }
+            else {
+                uri = loc.host + uri;
+            }
+        }
+        if (!/^(https?|wss?):\/\//.test(uri)) {
+            debug("protocol-less url %s", uri);
+            if ("undefined" !== typeof loc) {
+                uri = loc.protocol + "//" + uri;
+            }
+            else {
+                uri = "https://" + uri;
+            }
+        }
+        // parse
+        debug("parse %s", uri);
+        obj = engine_io_client_1.parse(uri);
+    }
+    // make sure we treat `localhost:80` and `localhost` equally
+    if (!obj.port) {
+        if (/^(http|ws)$/.test(obj.protocol)) {
+            obj.port = "80";
+        }
+        else if (/^(http|ws)s$/.test(obj.protocol)) {
+            obj.port = "443";
+        }
+    }
+    obj.path = obj.path || "/";
+    const ipv6 = obj.host.indexOf(":") !== -1;
+    const host = ipv6 ? "[" + obj.host + "]" : obj.host;
+    // define unique id
+    obj.id = obj.protocol + "://" + host + ":" + obj.port + path;
+    // define href
+    obj.href =
+        obj.protocol +
+            "://" +
+            host +
+            (loc && loc.port === obj.port ? "" : ":" + obj.port);
+    return obj;
+}
+exports.url = url;
+
+},{"debug":43,"engine.io-client":50}],77:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.reconstructPacket = exports.deconstructPacket = void 0;
+const is_binary_js_1 = require("./is-binary.js");
+/**
+ * Replaces every Buffer | ArrayBuffer | Blob | File in packet with a numbered placeholder.
+ *
+ * @param {Object} packet - socket.io event packet
+ * @return {Object} with deconstructed packet and list of buffers
+ * @public
+ */
+function deconstructPacket(packet) {
+    const buffers = [];
+    const packetData = packet.data;
+    const pack = packet;
+    pack.data = _deconstructPacket(packetData, buffers);
+    pack.attachments = buffers.length; // number of binary 'attachments'
+    return { packet: pack, buffers: buffers };
+}
+exports.deconstructPacket = deconstructPacket;
+function _deconstructPacket(data, buffers) {
+    if (!data)
+        return data;
+    if (is_binary_js_1.isBinary(data)) {
+        const placeholder = { _placeholder: true, num: buffers.length };
+        buffers.push(data);
+        return placeholder;
+    }
+    else if (Array.isArray(data)) {
+        const newData = new Array(data.length);
+        for (let i = 0; i < data.length; i++) {
+            newData[i] = _deconstructPacket(data[i], buffers);
+        }
+        return newData;
+    }
+    else if (typeof data === "object" && !(data instanceof Date)) {
+        const newData = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                newData[key] = _deconstructPacket(data[key], buffers);
+            }
+        }
+        return newData;
+    }
+    return data;
+}
+/**
+ * Reconstructs a binary packet from its placeholder packet and buffers
+ *
+ * @param {Object} packet - event packet with placeholders
+ * @param {Array} buffers - binary buffers to put in placeholder positions
+ * @return {Object} reconstructed packet
+ * @public
+ */
+function reconstructPacket(packet, buffers) {
+    packet.data = _reconstructPacket(packet.data, buffers);
+    packet.attachments = undefined; // no longer useful
+    return packet;
+}
+exports.reconstructPacket = reconstructPacket;
+function _reconstructPacket(data, buffers) {
+    if (!data)
+        return data;
+    if (data && data._placeholder === true) {
+        const isIndexValid = typeof data.num === "number" &&
+            data.num >= 0 &&
+            data.num < buffers.length;
+        if (isIndexValid) {
+            return buffers[data.num]; // appropriate buffer (should be natural order anyway)
+        }
+        else {
+            throw new Error("illegal attachments");
+        }
+    }
+    else if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+            data[i] = _reconstructPacket(data[i], buffers);
+        }
+    }
+    else if (typeof data === "object") {
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                data[key] = _reconstructPacket(data[key], buffers);
+            }
+        }
+    }
+    return data;
+}
+
+},{"./is-binary.js":79}],78:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Decoder = exports.Encoder = exports.PacketType = exports.protocol = void 0;
+const component_emitter_1 = require("@socket.io/component-emitter");
+const binary_js_1 = require("./binary.js");
+const is_binary_js_1 = require("./is-binary.js");
+const debug_1 = require("debug"); // debug()
+const debug = debug_1.default("socket.io-parser"); // debug()
+/**
+ * Protocol version.
+ *
+ * @public
+ */
+exports.protocol = 5;
+var PacketType;
+(function (PacketType) {
+    PacketType[PacketType["CONNECT"] = 0] = "CONNECT";
+    PacketType[PacketType["DISCONNECT"] = 1] = "DISCONNECT";
+    PacketType[PacketType["EVENT"] = 2] = "EVENT";
+    PacketType[PacketType["ACK"] = 3] = "ACK";
+    PacketType[PacketType["CONNECT_ERROR"] = 4] = "CONNECT_ERROR";
+    PacketType[PacketType["BINARY_EVENT"] = 5] = "BINARY_EVENT";
+    PacketType[PacketType["BINARY_ACK"] = 6] = "BINARY_ACK";
+})(PacketType = exports.PacketType || (exports.PacketType = {}));
+/**
+ * A socket.io Encoder instance
+ */
+class Encoder {
+    /**
+     * Encoder constructor
+     *
+     * @param {function} replacer - custom replacer to pass down to JSON.parse
+     */
+    constructor(replacer) {
+        this.replacer = replacer;
+    }
+    /**
+     * Encode a packet as a single string if non-binary, or as a
+     * buffer sequence, depending on packet type.
+     *
+     * @param {Object} obj - packet object
+     */
+    encode(obj) {
+        debug("encoding packet %j", obj);
+        if (obj.type === PacketType.EVENT || obj.type === PacketType.ACK) {
+            if (is_binary_js_1.hasBinary(obj)) {
+                obj.type =
+                    obj.type === PacketType.EVENT
+                        ? PacketType.BINARY_EVENT
+                        : PacketType.BINARY_ACK;
+                return this.encodeAsBinary(obj);
+            }
+        }
+        return [this.encodeAsString(obj)];
+    }
+    /**
+     * Encode packet as string.
+     */
+    encodeAsString(obj) {
+        // first is type
+        let str = "" + obj.type;
+        // attachments if we have them
+        if (obj.type === PacketType.BINARY_EVENT ||
+            obj.type === PacketType.BINARY_ACK) {
+            str += obj.attachments + "-";
+        }
+        // if we have a namespace other than `/`
+        // we append it followed by a comma `,`
+        if (obj.nsp && "/" !== obj.nsp) {
+            str += obj.nsp + ",";
+        }
+        // immediately followed by the id
+        if (null != obj.id) {
+            str += obj.id;
+        }
+        // json data
+        if (null != obj.data) {
+            str += JSON.stringify(obj.data, this.replacer);
+        }
+        debug("encoded %j as %s", obj, str);
+        return str;
+    }
+    /**
+     * Encode packet as 'buffer sequence' by removing blobs, and
+     * deconstructing packet into object with placeholders and
+     * a list of buffers.
+     */
+    encodeAsBinary(obj) {
+        const deconstruction = binary_js_1.deconstructPacket(obj);
+        const pack = this.encodeAsString(deconstruction.packet);
+        const buffers = deconstruction.buffers;
+        buffers.unshift(pack); // add packet info to beginning of data list
+        return buffers; // write all the buffers
+    }
+}
+exports.Encoder = Encoder;
+/**
+ * A socket.io Decoder instance
+ *
+ * @return {Object} decoder
+ */
+class Decoder extends component_emitter_1.Emitter {
+    /**
+     * Decoder constructor
+     *
+     * @param {function} reviver - custom reviver to pass down to JSON.stringify
+     */
+    constructor(reviver) {
+        super();
+        this.reviver = reviver;
+    }
+    /**
+     * Decodes an encoded packet string into packet JSON.
+     *
+     * @param {String} obj - encoded packet
+     */
+    add(obj) {
+        let packet;
+        if (typeof obj === "string") {
+            if (this.reconstructor) {
+                throw new Error("got plaintext data when reconstructing a packet");
+            }
+            packet = this.decodeString(obj);
+            if (packet.type === PacketType.BINARY_EVENT ||
+                packet.type === PacketType.BINARY_ACK) {
+                // binary packet's json
+                this.reconstructor = new BinaryReconstructor(packet);
+                // no attachments, labeled binary but no binary data to follow
+                if (packet.attachments === 0) {
+                    super.emitReserved("decoded", packet);
+                }
+            }
+            else {
+                // non-binary full packet
+                super.emitReserved("decoded", packet);
+            }
+        }
+        else if (is_binary_js_1.isBinary(obj) || obj.base64) {
+            // raw binary data
+            if (!this.reconstructor) {
+                throw new Error("got binary data when not reconstructing a packet");
+            }
+            else {
+                packet = this.reconstructor.takeBinaryData(obj);
+                if (packet) {
+                    // received final buffer
+                    this.reconstructor = null;
+                    super.emitReserved("decoded", packet);
+                }
+            }
+        }
+        else {
+            throw new Error("Unknown type: " + obj);
+        }
+    }
+    /**
+     * Decode a packet String (JSON data)
+     *
+     * @param {String} str
+     * @return {Object} packet
+     */
+    decodeString(str) {
+        let i = 0;
+        // look up type
+        const p = {
+            type: Number(str.charAt(0)),
+        };
+        if (PacketType[p.type] === undefined) {
+            throw new Error("unknown packet type " + p.type);
+        }
+        // look up attachments if type binary
+        if (p.type === PacketType.BINARY_EVENT ||
+            p.type === PacketType.BINARY_ACK) {
+            const start = i + 1;
+            while (str.charAt(++i) !== "-" && i != str.length) { }
+            const buf = str.substring(start, i);
+            if (buf != Number(buf) || str.charAt(i) !== "-") {
+                throw new Error("Illegal attachments");
+            }
+            p.attachments = Number(buf);
+        }
+        // look up namespace (if any)
+        if ("/" === str.charAt(i + 1)) {
+            const start = i + 1;
+            while (++i) {
+                const c = str.charAt(i);
+                if ("," === c)
+                    break;
+                if (i === str.length)
+                    break;
+            }
+            p.nsp = str.substring(start, i);
+        }
+        else {
+            p.nsp = "/";
+        }
+        // look up id
+        const next = str.charAt(i + 1);
+        if ("" !== next && Number(next) == next) {
+            const start = i + 1;
+            while (++i) {
+                const c = str.charAt(i);
+                if (null == c || Number(c) != c) {
+                    --i;
+                    break;
+                }
+                if (i === str.length)
+                    break;
+            }
+            p.id = Number(str.substring(start, i + 1));
+        }
+        // look up json data
+        if (str.charAt(++i)) {
+            const payload = this.tryParse(str.substr(i));
+            if (Decoder.isPayloadValid(p.type, payload)) {
+                p.data = payload;
+            }
+            else {
+                throw new Error("invalid payload");
+            }
+        }
+        debug("decoded %s as %j", str, p);
+        return p;
+    }
+    tryParse(str) {
+        try {
+            return JSON.parse(str, this.reviver);
+        }
+        catch (e) {
+            return false;
+        }
+    }
+    static isPayloadValid(type, payload) {
+        switch (type) {
+            case PacketType.CONNECT:
+                return typeof payload === "object";
+            case PacketType.DISCONNECT:
+                return payload === undefined;
+            case PacketType.CONNECT_ERROR:
+                return typeof payload === "string" || typeof payload === "object";
+            case PacketType.EVENT:
+            case PacketType.BINARY_EVENT:
+                return Array.isArray(payload) && payload.length > 0;
+            case PacketType.ACK:
+            case PacketType.BINARY_ACK:
+                return Array.isArray(payload);
+        }
+    }
+    /**
+     * Deallocates a parser's resources
+     */
+    destroy() {
+        if (this.reconstructor) {
+            this.reconstructor.finishedReconstruction();
+        }
+    }
+}
+exports.Decoder = Decoder;
+/**
+ * A manager of a binary event's 'buffer sequence'. Should
+ * be constructed whenever a packet of type BINARY_EVENT is
+ * decoded.
+ *
+ * @param {Object} packet
+ * @return {BinaryReconstructor} initialized reconstructor
+ */
+class BinaryReconstructor {
+    constructor(packet) {
+        this.packet = packet;
+        this.buffers = [];
+        this.reconPack = packet;
+    }
+    /**
+     * Method to be called when binary data received from connection
+     * after a BINARY_EVENT packet.
+     *
+     * @param {Buffer | ArrayBuffer} binData - the raw binary data received
+     * @return {null | Object} returns null if more binary data is expected or
+     *   a reconstructed packet object if all buffers have been received.
+     */
+    takeBinaryData(binData) {
+        this.buffers.push(binData);
+        if (this.buffers.length === this.reconPack.attachments) {
+            // done with buffer list
+            const packet = binary_js_1.reconstructPacket(this.reconPack, this.buffers);
+            this.finishedReconstruction();
+            return packet;
+        }
+        return null;
+    }
+    /**
+     * Cleans up binary packet reconstruction variables.
+     */
+    finishedReconstruction() {
+        this.reconPack = null;
+        this.buffers = [];
+    }
+}
+
+},{"./binary.js":77,"./is-binary.js":79,"@socket.io/component-emitter":6,"debug":43}],79:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.hasBinary = exports.isBinary = void 0;
+const withNativeArrayBuffer = typeof ArrayBuffer === "function";
+const isView = (obj) => {
+    return typeof ArrayBuffer.isView === "function"
+        ? ArrayBuffer.isView(obj)
+        : obj.buffer instanceof ArrayBuffer;
+};
+const toString = Object.prototype.toString;
+const withNativeBlob = typeof Blob === "function" ||
+    (typeof Blob !== "undefined" &&
+        toString.call(Blob) === "[object BlobConstructor]");
+const withNativeFile = typeof File === "function" ||
+    (typeof File !== "undefined" &&
+        toString.call(File) === "[object FileConstructor]");
+/**
+ * Returns true if obj is a Buffer, an ArrayBuffer, a Blob or a File.
+ *
+ * @private
+ */
+function isBinary(obj) {
+    return ((withNativeArrayBuffer && (obj instanceof ArrayBuffer || isView(obj))) ||
+        (withNativeBlob && obj instanceof Blob) ||
+        (withNativeFile && obj instanceof File));
+}
+exports.isBinary = isBinary;
+function hasBinary(obj, toJSON) {
+    if (!obj || typeof obj !== "object") {
+        return false;
+    }
+    if (Array.isArray(obj)) {
+        for (let i = 0, l = obj.length; i < l; i++) {
+            if (hasBinary(obj[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+    if (isBinary(obj)) {
+        return true;
+    }
+    if (obj.toJSON &&
+        typeof obj.toJSON === "function" &&
+        arguments.length === 1) {
+        return hasBinary(obj.toJSON(), true);
+    }
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key) && hasBinary(obj[key])) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.hasBinary = hasBinary;
+
+},{}],80:[function(require,module,exports){
 (function (setImmediate,clearImmediate){(function (){
 var nextTick = require('process/browser.js').nextTick;
 var apply = Function.prototype.apply;
@@ -26713,7 +31237,7 @@ exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate :
   delete immediateIds[id];
 };
 }).call(this)}).call(this,require("timers").setImmediate,require("timers").clearImmediate)
-},{"process/browser.js":46,"timers":48}],49:[function(require,module,exports){
+},{"process/browser.js":69,"timers":80}],81:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -30849,7 +35373,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 });
 ;
 
-},{"chart.js":40,"vue":52}],50:[function(require,module,exports){
+},{"chart.js":41,"vue":84}],82:[function(require,module,exports){
 var Vue // late bind
 var version
 var map = Object.create(null)
@@ -31124,7 +35648,7 @@ function patchScopedSlots (instance) {
   }
 }
 
-},{}],51:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 (function (global,setImmediate){(function (){
 /*!
  * Vue.js v2.7.10
@@ -39799,7 +44323,7 @@ extend(Vue, vca);
 module.exports = Vue;
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("timers").setImmediate)
-},{"timers":48}],52:[function(require,module,exports){
+},{"timers":80}],84:[function(require,module,exports){
 (function (process){(function (){
 if (process.env.NODE_ENV === 'production') {
   module.exports = require('./vue.runtime.common.prod.js')
@@ -39808,7 +44332,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 }).call(this)}).call(this,require('_process'))
-},{"./vue.runtime.common.dev.js":51,"./vue.runtime.common.prod.js":53,"_process":46}],53:[function(require,module,exports){
+},{"./vue.runtime.common.dev.js":83,"./vue.runtime.common.prod.js":85,"_process":69}],85:[function(require,module,exports){
 (function (global,setImmediate){(function (){
 /*!
  * Vue.js v2.7.10
@@ -39822,7 +44346,7 @@ if (process.env.NODE_ENV === 'production') {
  */
 "use strict";const t=Object.freeze({}),e=Array.isArray;function n(t){return null==t}function o(t){return null!=t}function r(t){return!0===t}function s(t){return"string"==typeof t||"number"==typeof t||"symbol"==typeof t||"boolean"==typeof t}function i(t){return"function"==typeof t}function c(t){return null!==t&&"object"==typeof t}const a=Object.prototype.toString;function l(t){return"[object Object]"===a.call(t)}function u(t){const e=parseFloat(String(t));return e>=0&&Math.floor(e)===e&&isFinite(t)}function f(t){return o(t)&&"function"==typeof t.then&&"function"==typeof t.catch}function d(t){return null==t?"":Array.isArray(t)||l(t)&&t.toString===a?JSON.stringify(t,null,2):String(t)}function p(t){const e=parseFloat(t);return isNaN(e)?t:e}function h(t,e){const n=Object.create(null),o=t.split(",");for(let t=0;t<o.length;t++)n[o[t]]=!0;return e?t=>n[t.toLowerCase()]:t=>n[t]}const m=h("key,ref,slot,slot-scope,is");function _(t,e){if(t.length){const n=t.indexOf(e);if(n>-1)return t.splice(n,1)}}const v=Object.prototype.hasOwnProperty;function y(t,e){return v.call(t,e)}function g(t){const e=Object.create(null);return function(n){return e[n]||(e[n]=t(n))}}const b=/-(\w)/g,$=g((t=>t.replace(b,((t,e)=>e?e.toUpperCase():"")))),w=g((t=>t.charAt(0).toUpperCase()+t.slice(1))),C=/\B([A-Z])/g,x=g((t=>t.replace(C,"-$1").toLowerCase()));const k=Function.prototype.bind?function(t,e){return t.bind(e)}:function(t,e){function n(n){const o=arguments.length;return o?o>1?t.apply(e,arguments):t.call(e,n):t.call(e)}return n._length=t.length,n};function O(t,e){e=e||0;let n=t.length-e;const o=new Array(n);for(;n--;)o[n]=t[n+e];return o}function S(t,e){for(const n in e)t[n]=e[n];return t}function A(t){const e={};for(let n=0;n<t.length;n++)t[n]&&S(e,t[n]);return e}function T(t,e,n){}const j=(t,e,n)=>!1,E=t=>t;function P(t,e){if(t===e)return!0;const n=c(t),o=c(e);if(!n||!o)return!n&&!o&&String(t)===String(e);try{const n=Array.isArray(t),o=Array.isArray(e);if(n&&o)return t.length===e.length&&t.every(((t,n)=>P(t,e[n])));if(t instanceof Date&&e instanceof Date)return t.getTime()===e.getTime();if(n||o)return!1;{const n=Object.keys(t),o=Object.keys(e);return n.length===o.length&&n.every((n=>P(t[n],e[n])))}}catch(t){return!1}}function I(t,e){for(let n=0;n<t.length;n++)if(P(t[n],e))return n;return-1}function D(t){let e=!1;return function(){e||(e=!0,t.apply(this,arguments))}}function N(t,e){return t===e?0===t&&1/t!=1/e:t==t||e==e}const M=["component","directive","filter"],R=["beforeCreate","created","beforeMount","mounted","beforeUpdate","updated","beforeDestroy","destroyed","activated","deactivated","errorCaptured","serverPrefetch","renderTracked","renderTriggered"];var L={optionMergeStrategies:Object.create(null),silent:!1,productionTip:!1,devtools:!1,performance:!1,errorHandler:null,warnHandler:null,ignoredElements:[],keyCodes:Object.create(null),isReservedTag:j,isReservedAttr:j,isUnknownElement:j,getTagNamespace:T,parsePlatformTagName:E,mustUseProp:j,async:!0,_lifecycleHooks:R};function F(t){const e=(t+"").charCodeAt(0);return 36===e||95===e}function U(t,e,n,o){Object.defineProperty(t,e,{value:n,enumerable:!!o,writable:!0,configurable:!0})}const B=new RegExp(`[^${/a-zA-Z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD/.source}.$_\\d]`);const V="__proto__"in{},z="undefined"!=typeof window,H=z&&window.navigator.userAgent.toLowerCase(),W=H&&/msie|trident/.test(H),K=H&&H.indexOf("msie 9.0")>0,q=H&&H.indexOf("edge/")>0;H&&H.indexOf("android");const G=H&&/iphone|ipad|ipod|ios/.test(H);H&&/chrome\/\d+/.test(H),H&&/phantomjs/.test(H);const Z=H&&H.match(/firefox\/(\d+)/),J={}.watch;let X,Q=!1;if(z)try{const t={};Object.defineProperty(t,"passive",{get(){Q=!0}}),window.addEventListener("test-passive",null,t)}catch(t){}const Y=()=>(void 0===X&&(X=!z&&"undefined"!=typeof global&&(global.process&&"server"===global.process.env.VUE_ENV)),X),tt=z&&window.__VUE_DEVTOOLS_GLOBAL_HOOK__;function et(t){return"function"==typeof t&&/native code/.test(t.toString())}const nt="undefined"!=typeof Symbol&&et(Symbol)&&"undefined"!=typeof Reflect&&et(Reflect.ownKeys);let ot;ot="undefined"!=typeof Set&&et(Set)?Set:class{constructor(){this.set=Object.create(null)}has(t){return!0===this.set[t]}add(t){this.set[t]=!0}clear(){this.set=Object.create(null)}};let rt=null;function st(t=null){t||rt&&rt._scope.off(),rt=t,t&&t._scope.on()}class it{constructor(t,e,n,o,r,s,i,c){this.tag=t,this.data=e,this.children=n,this.text=o,this.elm=r,this.ns=void 0,this.context=s,this.fnContext=void 0,this.fnOptions=void 0,this.fnScopeId=void 0,this.key=e&&e.key,this.componentOptions=i,this.componentInstance=void 0,this.parent=void 0,this.raw=!1,this.isStatic=!1,this.isRootInsert=!0,this.isComment=!1,this.isCloned=!1,this.isOnce=!1,this.asyncFactory=c,this.asyncMeta=void 0,this.isAsyncPlaceholder=!1}get child(){return this.componentInstance}}const ct=(t="")=>{const e=new it;return e.text=t,e.isComment=!0,e};function at(t){return new it(void 0,void 0,void 0,String(t))}function lt(t){const e=new it(t.tag,t.data,t.children&&t.children.slice(),t.text,t.elm,t.context,t.componentOptions,t.asyncFactory);return e.ns=t.ns,e.isStatic=t.isStatic,e.key=t.key,e.isComment=t.isComment,e.fnContext=t.fnContext,e.fnOptions=t.fnOptions,e.fnScopeId=t.fnScopeId,e.asyncMeta=t.asyncMeta,e.isCloned=!0,e}let ut=0;class ft{constructor(){this.id=ut++,this.subs=[]}addSub(t){this.subs.push(t)}removeSub(t){_(this.subs,t)}depend(t){ft.target&&ft.target.addDep(this)}notify(t){const e=this.subs.slice();for(let t=0,n=e.length;t<n;t++)e[t].update()}}ft.target=null;const dt=[];function pt(t){dt.push(t),ft.target=t}function ht(){dt.pop(),ft.target=dt[dt.length-1]}const mt=Array.prototype,_t=Object.create(mt);["push","pop","shift","unshift","splice","sort","reverse"].forEach((function(t){const e=mt[t];U(_t,t,(function(...n){const o=e.apply(this,n),r=this.__ob__;let s;switch(t){case"push":case"unshift":s=n;break;case"splice":s=n.slice(2)}return s&&r.observeArray(s),r.dep.notify(),o}))}));const vt=Object.getOwnPropertyNames(_t),yt={};let gt=!0;function bt(t){gt=t}const $t={notify:T,depend:T,addSub:T,removeSub:T};class wt{constructor(t,n=!1,o=!1){if(this.value=t,this.shallow=n,this.mock=o,this.dep=o?$t:new ft,this.vmCount=0,U(t,"__ob__",this),e(t)){if(!o)if(V)t.__proto__=_t;else for(let e=0,n=vt.length;e<n;e++){const n=vt[e];U(t,n,_t[n])}n||this.observeArray(t)}else{const e=Object.keys(t);for(let r=0;r<e.length;r++){xt(t,e[r],yt,void 0,n,o)}}}observeArray(t){for(let e=0,n=t.length;e<n;e++)Ct(t[e],!1,this.mock)}}function Ct(t,n,o){if(!c(t)||It(t)||t instanceof it)return;let r;return y(t,"__ob__")&&t.__ob__ instanceof wt?r=t.__ob__:!gt||!o&&Y()||!e(t)&&!l(t)||!Object.isExtensible(t)||t.__v_skip||(r=new wt(t,n,o)),r}function xt(t,n,o,r,s,i){const c=new ft,a=Object.getOwnPropertyDescriptor(t,n);if(a&&!1===a.configurable)return;const l=a&&a.get,u=a&&a.set;l&&!u||o!==yt&&2!==arguments.length||(o=t[n]);let f=!s&&Ct(o,!1,i);return Object.defineProperty(t,n,{enumerable:!0,configurable:!0,get:function(){const n=l?l.call(t):o;return ft.target&&(c.depend(),f&&(f.dep.depend(),e(n)&&St(n))),It(n)&&!s?n.value:n},set:function(e){const n=l?l.call(t):o;if(N(n,e)){if(u)u.call(t,e);else{if(l)return;if(!s&&It(n)&&!It(e))return void(n.value=e);o=e}f=!s&&Ct(e,!1,i),c.notify()}}}),c}function kt(t,n,o){if(Pt(t))return;const r=t.__ob__;return e(t)&&u(n)?(t.length=Math.max(t.length,n),t.splice(n,1,o),r&&!r.shallow&&r.mock&&Ct(o,!1,!0),o):n in t&&!(n in Object.prototype)?(t[n]=o,o):t._isVue||r&&r.vmCount?o:r?(xt(r.value,n,o,void 0,r.shallow,r.mock),r.dep.notify(),o):(t[n]=o,o)}function Ot(t,n){if(e(t)&&u(n))return void t.splice(n,1);const o=t.__ob__;t._isVue||o&&o.vmCount||Pt(t)||y(t,n)&&(delete t[n],o&&o.dep.notify())}function St(t){for(let n,o=0,r=t.length;o<r;o++)n=t[o],n&&n.__ob__&&n.__ob__.dep.depend(),e(n)&&St(n)}function At(t){return Tt(t,!0),U(t,"__v_isShallow",!0),t}function Tt(t,e){Pt(t)||Ct(t,e,Y())}function jt(t){return Pt(t)?jt(t.__v_raw):!(!t||!t.__ob__)}function Et(t){return!(!t||!t.__v_isShallow)}function Pt(t){return!(!t||!t.__v_isReadonly)}function It(t){return!(!t||!0!==t.__v_isRef)}function Dt(t,e){if(It(t))return t;const n={};return U(n,"__v_isRef",!0),U(n,"__v_isShallow",e),U(n,"dep",xt(n,"value",t,null,e,Y())),n}function Nt(t,e,n){Object.defineProperty(t,n,{enumerable:!0,configurable:!0,get:()=>{const t=e[n];if(It(t))return t.value;{const e=t&&t.__ob__;return e&&e.dep.depend(),t}},set:t=>{const o=e[n];It(o)&&!It(t)?o.value=t:e[n]=t}})}function Mt(t,e,n){const o=t[e];if(It(o))return o;const r={get value(){const o=t[e];return void 0===o?n:o},set value(n){t[e]=n}};return U(r,"__v_isRef",!0),r}function Rt(t){return Lt(t,!1)}function Lt(t,e){if(!l(t))return t;if(Pt(t))return t;const n=e?"__v_rawToShallowReadonly":"__v_rawToReadonly",o=t[n];if(o)return o;const r=Object.create(Object.getPrototypeOf(t));U(t,n,r),U(r,"__v_isReadonly",!0),U(r,"__v_raw",t),It(t)&&U(r,"__v_isRef",!0),(e||Et(t))&&U(r,"__v_isShallow",!0);const s=Object.keys(t);for(let n=0;n<s.length;n++)Ft(r,t,s[n],e);return r}function Ft(t,e,n,o){Object.defineProperty(t,n,{enumerable:!0,configurable:!0,get(){const t=e[n];return o||!l(t)?t:Rt(t)},set(){}})}function Ut(t,e){return Vt(t,null,{flush:"post"})}const Bt={};function Vt(n,o,{immediate:r,deep:s,flush:c="pre",onTrack:a,onTrigger:l}=t){const u=rt,f=(t,e,n=null)=>Pe(t,null,n,u,e);let d,p,h=!1,m=!1;if(It(n)?(d=()=>n.value,h=Et(n)):jt(n)?(d=()=>(n.__ob__.dep.depend(),n),s=!0):e(n)?(m=!0,h=n.some((t=>jt(t)||Et(t))),d=()=>n.map((t=>It(t)?t.value:jt(t)?nn(t):i(t)?f(t,"watcher getter"):void 0))):d=i(n)?o?()=>f(n,"watcher getter"):()=>{if(!u||!u._isDestroyed)return p&&p(),f(n,"watcher",[_])}:T,o&&s){const t=d;d=()=>nn(t())}let _=t=>{p=v.onStop=()=>{f(t,"watcher cleanup")}};if(Y())return _=T,o?r&&f(o,"watcher callback",[d(),m?[]:void 0,_]):d(),T;const v=new cn(rt,d,T,{lazy:!0});v.noRecurse=!o;let y=m?[]:Bt;return v.run=()=>{if(v.active)if(o){const t=v.get();(s||h||(m?t.some(((t,e)=>N(t,y[e]))):N(t,y)))&&(p&&p(),f(o,"watcher callback",[t,y===Bt?void 0:y,_]),y=t)}else v.get()},"sync"===c?v.update=v.run:"post"===c?(v.post=!0,v.update=()=>An(v)):v.update=()=>{if(u&&u===rt&&!u._isMounted){const t=u._preWatchers||(u._preWatchers=[]);t.indexOf(v)<0&&t.push(v)}else An(v)},o?r?v.run():y=v.get():"post"===c&&u?u.$once("hook:mounted",(()=>v.get())):v.get(),()=>{v.teardown()}}let zt;class Ht{constructor(t=!1){this.active=!0,this.effects=[],this.cleanups=[],!t&&zt&&(this.parent=zt,this.index=(zt.scopes||(zt.scopes=[])).push(this)-1)}run(t){if(this.active){const e=zt;try{return zt=this,t()}finally{zt=e}}}on(){zt=this}off(){zt=this.parent}stop(t){if(this.active){let e,n;for(e=0,n=this.effects.length;e<n;e++)this.effects[e].teardown();for(e=0,n=this.cleanups.length;e<n;e++)this.cleanups[e]();if(this.scopes)for(e=0,n=this.scopes.length;e<n;e++)this.scopes[e].stop(!0);if(this.parent&&!t){const t=this.parent.scopes.pop();t&&t!==this&&(this.parent.scopes[this.index]=t,t.index=this.index)}this.active=!1}}}function Wt(t){const e=t._provided,n=t.$parent&&t.$parent._provided;return n===e?t._provided=Object.create(n):e}const Kt=g((t=>{const e="&"===t.charAt(0),n="~"===(t=e?t.slice(1):t).charAt(0),o="!"===(t=n?t.slice(1):t).charAt(0);return{name:t=o?t.slice(1):t,once:n,capture:o,passive:e}}));function qt(t,n){function o(){const t=o.fns;if(!e(t))return Pe(t,null,arguments,n,"v-on handler");{const e=t.slice();for(let t=0;t<e.length;t++)Pe(e[t],null,arguments,n,"v-on handler")}}return o.fns=t,o}function Gt(t,e,o,s,i,c){let a,l,u,f;for(a in t)l=t[a],u=e[a],f=Kt(a),n(l)||(n(u)?(n(l.fns)&&(l=t[a]=qt(l,c)),r(f.once)&&(l=t[a]=i(f.name,l,f.capture)),o(f.name,l,f.capture,f.passive,f.params)):l!==u&&(u.fns=l,t[a]=u));for(a in e)n(t[a])&&(f=Kt(a),s(f.name,e[a],f.capture))}function Zt(t,e,s){let i;t instanceof it&&(t=t.data.hook||(t.data.hook={}));const c=t[e];function a(){s.apply(this,arguments),_(i.fns,a)}n(c)?i=qt([a]):o(c.fns)&&r(c.merged)?(i=c,i.fns.push(a)):i=qt([c,a]),i.merged=!0,t[e]=i}function Jt(t,e,n,r,s){if(o(e)){if(y(e,n))return t[n]=e[n],s||delete e[n],!0;if(y(e,r))return t[n]=e[r],s||delete e[r],!0}return!1}function Xt(t){return s(t)?[at(t)]:e(t)?Yt(t):void 0}function Qt(t){return o(t)&&o(t.text)&&!1===t.isComment}function Yt(t,i){const c=[];let a,l,u,f;for(a=0;a<t.length;a++)l=t[a],n(l)||"boolean"==typeof l||(u=c.length-1,f=c[u],e(l)?l.length>0&&(l=Yt(l,`${i||""}_${a}`),Qt(l[0])&&Qt(f)&&(c[u]=at(f.text+l[0].text),l.shift()),c.push.apply(c,l)):s(l)?Qt(f)?c[u]=at(f.text+l):""!==l&&c.push(at(l)):Qt(l)&&Qt(f)?c[u]=at(f.text+l.text):(r(t._isVList)&&o(l.tag)&&n(l.key)&&o(i)&&(l.key=`__vlist${i}_${a}__`),c.push(l)));return c}function te(t,n){let r,s,i,a,l=null;if(e(t)||"string"==typeof t)for(l=new Array(t.length),r=0,s=t.length;r<s;r++)l[r]=n(t[r],r);else if("number"==typeof t)for(l=new Array(t),r=0;r<t;r++)l[r]=n(r+1,r);else if(c(t))if(nt&&t[Symbol.iterator]){l=[];const e=t[Symbol.iterator]();let o=e.next();for(;!o.done;)l.push(n(o.value,l.length)),o=e.next()}else for(i=Object.keys(t),l=new Array(i.length),r=0,s=i.length;r<s;r++)a=i[r],l[r]=n(t[a],a,r);return o(l)||(l=[]),l._isVList=!0,l}function ee(t,e,n,o){const r=this.$scopedSlots[t];let s;r?(n=n||{},o&&(n=S(S({},o),n)),s=r(n)||(i(e)?e():e)):s=this.$slots[t]||(i(e)?e():e);const c=n&&n.slot;return c?this.$createElement("template",{slot:c},s):s}function ne(t){return Kn(this.$options,"filters",t)||E}function oe(t,n){return e(t)?-1===t.indexOf(n):t!==n}function re(t,e,n,o,r){const s=L.keyCodes[e]||n;return r&&o&&!L.keyCodes[e]?oe(r,o):s?oe(s,t):o?x(o)!==e:void 0===t}function se(t,n,o,r,s){if(o)if(c(o)){let i;e(o)&&(o=A(o));for(const e in o){if("class"===e||"style"===e||m(e))i=t;else{const o=t.attrs&&t.attrs.type;i=r||L.mustUseProp(n,o,e)?t.domProps||(t.domProps={}):t.attrs||(t.attrs={})}const c=$(e),a=x(e);if(!(c in i)&&!(a in i)&&(i[e]=o[e],s)){(t.on||(t.on={}))[`update:${e}`]=function(t){o[e]=t}}}}else;return t}function ie(t,e){const n=this._staticTrees||(this._staticTrees=[]);let o=n[t];return o&&!e||(o=n[t]=this.$options.staticRenderFns[t].call(this._renderProxy,this._c,this),ae(o,`__static__${t}`,!1)),o}function ce(t,e,n){return ae(t,`__once__${e}${n?`_${n}`:""}`,!0),t}function ae(t,n,o){if(e(t))for(let e=0;e<t.length;e++)t[e]&&"string"!=typeof t[e]&&le(t[e],`${n}_${e}`,o);else le(t,n,o)}function le(t,e,n){t.isStatic=!0,t.key=e,t.isOnce=n}function ue(t,e){if(e)if(l(e)){const n=t.on=t.on?S({},t.on):{};for(const t in e){const o=n[t],r=e[t];n[t]=o?[].concat(o,r):r}}else;return t}function fe(t,n,o,r){n=n||{$stable:!o};for(let r=0;r<t.length;r++){const s=t[r];e(s)?fe(s,n,o):s&&(s.proxy&&(s.fn.proxy=!0),n[s.key]=s.fn)}return r&&(n.$key=r),n}function de(t,e){for(let n=0;n<e.length;n+=2){const o=e[n];"string"==typeof o&&o&&(t[e[n]]=e[n+1])}return t}function pe(t,e){return"string"==typeof t?e+t:t}function he(t){t._o=ce,t._n=p,t._s=d,t._l=te,t._t=ee,t._q=P,t._i=I,t._m=ie,t._f=ne,t._k=re,t._b=se,t._v=at,t._e=ct,t._u=fe,t._g=ue,t._d=de,t._p=pe}function me(t,e){if(!t||!t.length)return{};const n={};for(let o=0,r=t.length;o<r;o++){const r=t[o],s=r.data;if(s&&s.attrs&&s.attrs.slot&&delete s.attrs.slot,r.context!==e&&r.fnContext!==e||!s||null==s.slot)(n.default||(n.default=[])).push(r);else{const t=s.slot,e=n[t]||(n[t]=[]);"template"===r.tag?e.push.apply(e,r.children||[]):e.push(r)}}for(const t in n)n[t].every(_e)&&delete n[t];return n}function _e(t){return t.isComment&&!t.asyncFactory||" "===t.text}function ve(t){return t.isComment&&t.asyncFactory}function ye(e,n,o,r){let s;const i=Object.keys(o).length>0,c=n?!!n.$stable:!i,a=n&&n.$key;if(n){if(n._normalized)return n._normalized;if(c&&r&&r!==t&&a===r.$key&&!i&&!r.$hasNormal)return r;s={};for(const t in n)n[t]&&"$"!==t[0]&&(s[t]=ge(e,o,t,n[t]))}else s={};for(const t in o)t in s||(s[t]=be(o,t));return n&&Object.isExtensible(n)&&(n._normalized=s),U(s,"$stable",c),U(s,"$key",a),U(s,"$hasNormal",i),s}function ge(t,n,o,r){const s=function(){const n=rt;st(t);let o=arguments.length?r.apply(null,arguments):r({});o=o&&"object"==typeof o&&!e(o)?[o]:Xt(o);const s=o&&o[0];return st(n),o&&(!s||1===o.length&&s.isComment&&!ve(s))?void 0:o};return r.proxy&&Object.defineProperty(n,o,{get:s,enumerable:!0,configurable:!0}),s}function be(t,e){return()=>t[e]}function $e(e){return{get attrs(){if(!e._attrsProxy){const n=e._attrsProxy={};U(n,"_v_attr_proxy",!0),we(n,e.$attrs,t,e,"$attrs")}return e._attrsProxy},get listeners(){if(!e._listenersProxy){we(e._listenersProxy={},e.$listeners,t,e,"$listeners")}return e._listenersProxy},get slots(){return function(t){t._slotsProxy||xe(t._slotsProxy={},t.$scopedSlots);return t._slotsProxy}(e)},emit:k(e.$emit,e),expose(t){t&&Object.keys(t).forEach((n=>Nt(e,t,n)))}}}function we(t,e,n,o,r){let s=!1;for(const i in e)i in t?e[i]!==n[i]&&(s=!0):(s=!0,Ce(t,i,o,r));for(const n in t)n in e||(s=!0,delete t[n]);return s}function Ce(t,e,n,o){Object.defineProperty(t,e,{enumerable:!0,configurable:!0,get:()=>n[o][e]})}function xe(t,e){for(const n in e)t[n]=e[n];for(const n in t)n in e||delete t[n]}function ke(){const t=rt;return t._setupContext||(t._setupContext=$e(t))}let Oe=null;function Se(t,e){return(t.__esModule||nt&&"Module"===t[Symbol.toStringTag])&&(t=t.default),c(t)?e.extend(t):t}function Ae(t){if(e(t))for(let e=0;e<t.length;e++){const n=t[e];if(o(n)&&(o(n.componentOptions)||ve(n)))return n}}function Te(t,n,a,l,u,f){return(e(a)||s(a))&&(u=l,l=a,a=void 0),r(f)&&(u=2),function(t,n,r,s,a){if(o(r)&&o(r.__ob__))return ct();o(r)&&o(r.is)&&(n=r.is);if(!n)return ct();e(s)&&i(s[0])&&((r=r||{}).scopedSlots={default:s[0]},s.length=0);2===a?s=Xt(s):1===a&&(s=function(t){for(let n=0;n<t.length;n++)if(e(t[n]))return Array.prototype.concat.apply([],t);return t}(s));let l,u;if("string"==typeof n){let e;u=t.$vnode&&t.$vnode.ns||L.getTagNamespace(n),l=L.isReservedTag(n)?new it(L.parsePlatformTagName(n),r,s,void 0,void 0,t):r&&r.pre||!o(e=Kn(t.$options,"components",n))?new it(n,r,s,void 0,void 0,t):Mn(e,r,t,s,n)}else l=Mn(n,r,t,s);return e(l)?l:o(l)?(o(u)&&je(l,u),o(r)&&function(t){c(t.style)&&nn(t.style);c(t.class)&&nn(t.class)}(r),l):ct()}(t,n,a,l,u)}function je(t,e,s){if(t.ns=e,"foreignObject"===t.tag&&(e=void 0,s=!0),o(t.children))for(let i=0,c=t.children.length;i<c;i++){const c=t.children[i];o(c.tag)&&(n(c.ns)||r(s)&&"svg"!==c.tag)&&je(c,e,s)}}function Ee(t,e,n){pt();try{if(e){let o=e;for(;o=o.$parent;){const r=o.$options.errorCaptured;if(r)for(let s=0;s<r.length;s++)try{if(!1===r[s].call(o,t,e,n))return}catch(t){Ie(t,o,"errorCaptured hook")}}}Ie(t,e,n)}finally{ht()}}function Pe(t,e,n,o,r){let s;try{s=n?t.apply(e,n):t.call(e),s&&!s._isVue&&f(s)&&!s._handled&&(s.catch((t=>Ee(t,o,r+" (Promise/async)"))),s._handled=!0)}catch(t){Ee(t,o,r)}return s}function Ie(t,e,n){if(L.errorHandler)try{return L.errorHandler.call(null,t,e,n)}catch(e){e!==t&&De(e)}De(t)}function De(t,e,n){if(!z||"undefined"==typeof console)throw t;console.error(t)}let Ne=!1;const Me=[];let Re,Le=!1;function Fe(){Le=!1;const t=Me.slice(0);Me.length=0;for(let e=0;e<t.length;e++)t[e]()}if("undefined"!=typeof Promise&&et(Promise)){const t=Promise.resolve();Re=()=>{t.then(Fe),G&&setTimeout(T)},Ne=!0}else if(W||"undefined"==typeof MutationObserver||!et(MutationObserver)&&"[object MutationObserverConstructor]"!==MutationObserver.toString())Re="undefined"!=typeof setImmediate&&et(setImmediate)?()=>{setImmediate(Fe)}:()=>{setTimeout(Fe,0)};else{let t=1;const e=new MutationObserver(Fe),n=document.createTextNode(String(t));e.observe(n,{characterData:!0}),Re=()=>{t=(t+1)%2,n.data=String(t)},Ne=!0}function Ue(t,e){let n;if(Me.push((()=>{if(t)try{t.call(e)}catch(t){Ee(t,e,"nextTick")}else n&&n(e)})),Le||(Le=!0,Re()),!t&&"undefined"!=typeof Promise)return new Promise((t=>{n=t}))}function Be(t){return(e,n=rt)=>{if(n)return function(t,e,n){const o=t.$options;o[e]=Vn(o[e],n)}(n,t,e)}}const Ve=Be("beforeMount"),ze=Be("mounted"),He=Be("beforeUpdate"),We=Be("updated"),Ke=Be("beforeDestroy"),qe=Be("destroyed"),Ge=Be("activated"),Ze=Be("deactivated"),Je=Be("serverPrefetch"),Xe=Be("renderTracked"),Qe=Be("renderTriggered"),Ye=Be("errorCaptured");var tn=Object.freeze({__proto__:null,version:"2.7.10",defineComponent:function(t){return t},ref:function(t){return Dt(t,!1)},shallowRef:function(t){return Dt(t,!0)},isRef:It,toRef:Mt,toRefs:function(t){const n=e(t)?new Array(t.length):{};for(const e in t)n[e]=Mt(t,e);return n},unref:function(t){return It(t)?t.value:t},proxyRefs:function(t){if(jt(t))return t;const e={},n=Object.keys(t);for(let o=0;o<n.length;o++)Nt(e,t,n[o]);return e},customRef:function(t){const e=new ft,{get:n,set:o}=t((()=>{e.depend()}),(()=>{e.notify()})),r={get value(){return n()},set value(t){o(t)}};return U(r,"__v_isRef",!0),r},triggerRef:function(t){t.dep&&t.dep.notify()},reactive:function(t){return Tt(t,!1),t},isReactive:jt,isReadonly:Pt,isShallow:Et,isProxy:function(t){return jt(t)||Pt(t)},shallowReactive:At,markRaw:function(t){return U(t,"__v_skip",!0),t},toRaw:function t(e){const n=e&&e.__v_raw;return n?t(n):e},readonly:Rt,shallowReadonly:function(t){return Lt(t,!0)},computed:function(t,e){let n,o;const r=i(t);r?(n=t,o=T):(n=t.get,o=t.set);const s=Y()?null:new cn(rt,n,T,{lazy:!0}),c={effect:s,get value(){return s?(s.dirty&&s.evaluate(),ft.target&&s.depend(),s.value):n()},set value(t){o(t)}};return U(c,"__v_isRef",!0),U(c,"__v_isReadonly",r),c},watch:function(t,e,n){return Vt(t,e,n)},watchEffect:function(t,e){return Vt(t,null,e)},watchPostEffect:Ut,watchSyncEffect:function(t,e){return Vt(t,null,{flush:"sync"})},EffectScope:Ht,effectScope:function(t){return new Ht(t)},onScopeDispose:function(t){zt&&zt.cleanups.push(t)},getCurrentScope:function(){return zt},provide:function(t,e){rt&&(Wt(rt)[t]=e)},inject:function(t,e,n=!1){const o=rt;if(o){const r=o.$parent&&o.$parent._provided;if(r&&t in r)return r[t];if(arguments.length>1)return n&&i(e)?e.call(o):e}},h:function(t,e,n){return Te(rt,t,e,n,2,!0)},getCurrentInstance:function(){return rt&&{proxy:rt}},useSlots:function(){return ke().slots},useAttrs:function(){return ke().attrs},useListeners:function(){return ke().listeners},mergeDefaults:function(t,n){const o=e(t)?t.reduce(((t,e)=>(t[e]={},t)),{}):t;for(const t in n){const r=o[t];r?e(r)||i(r)?o[t]={type:r,default:n[t]}:r.default=n[t]:null===r&&(o[t]={default:n[t]})}return o},nextTick:Ue,set:kt,del:Ot,useCssModule:function(e="$style"){{if(!rt)return t;const n=rt[e];return n||t}},useCssVars:function(t){if(!z)return;const e=rt;e&&Ut((()=>{const n=e.$el,o=t(e,e._setupProxy);if(n&&1===n.nodeType){const t=n.style;for(const e in o)t.setProperty(`--${e}`,o[e])}}))},defineAsyncComponent:function(t){i(t)&&(t={loader:t});const{loader:e,loadingComponent:n,errorComponent:o,delay:r=200,timeout:s,suspensible:c=!1,onError:a}=t;let l=null,u=0;const f=()=>{let t;return l||(t=l=e().catch((t=>{if(t=t instanceof Error?t:new Error(String(t)),a)return new Promise(((e,n)=>{a(t,(()=>e((u++,l=null,f()))),(()=>n(t)),u+1)}));throw t})).then((e=>t!==l&&l?l:(e&&(e.__esModule||"Module"===e[Symbol.toStringTag])&&(e=e.default),e))))};return()=>({component:f(),delay:r,timeout:s,error:o,loading:n})},onBeforeMount:Ve,onMounted:ze,onBeforeUpdate:He,onUpdated:We,onBeforeUnmount:Ke,onUnmounted:qe,onActivated:Ge,onDeactivated:Ze,onServerPrefetch:Je,onRenderTracked:Xe,onRenderTriggered:Qe,onErrorCaptured:function(t,e=rt){Ye(t,e)}});const en=new ot;function nn(t){return on(t,en),en.clear(),t}function on(t,n){let o,r;const s=e(t);if(!(!s&&!c(t)||Object.isFrozen(t)||t instanceof it)){if(t.__ob__){const e=t.__ob__.dep.id;if(n.has(e))return;n.add(e)}if(s)for(o=t.length;o--;)on(t[o],n);else if(It(t))on(t.value,n);else for(r=Object.keys(t),o=r.length;o--;)on(t[r[o]],n)}}let rn,sn=0;class cn{constructor(t,e,n,o,r){!function(t,e=zt){e&&e.active&&e.effects.push(t)}(this,zt&&!zt._vm?zt:t?t._scope:void 0),(this.vm=t)&&r&&(t._watcher=this),o?(this.deep=!!o.deep,this.user=!!o.user,this.lazy=!!o.lazy,this.sync=!!o.sync,this.before=o.before):this.deep=this.user=this.lazy=this.sync=!1,this.cb=n,this.id=++sn,this.active=!0,this.post=!1,this.dirty=this.lazy,this.deps=[],this.newDeps=[],this.depIds=new ot,this.newDepIds=new ot,this.expression="",i(e)?this.getter=e:(this.getter=function(t){if(B.test(t))return;const e=t.split(".");return function(t){for(let n=0;n<e.length;n++){if(!t)return;t=t[e[n]]}return t}}(e),this.getter||(this.getter=T)),this.value=this.lazy?void 0:this.get()}get(){let t;pt(this);const e=this.vm;try{t=this.getter.call(e,e)}catch(t){if(!this.user)throw t;Ee(t,e,`getter for watcher "${this.expression}"`)}finally{this.deep&&nn(t),ht(),this.cleanupDeps()}return t}addDep(t){const e=t.id;this.newDepIds.has(e)||(this.newDepIds.add(e),this.newDeps.push(t),this.depIds.has(e)||t.addSub(this))}cleanupDeps(){let t=this.deps.length;for(;t--;){const e=this.deps[t];this.newDepIds.has(e.id)||e.removeSub(this)}let e=this.depIds;this.depIds=this.newDepIds,this.newDepIds=e,this.newDepIds.clear(),e=this.deps,this.deps=this.newDeps,this.newDeps=e,this.newDeps.length=0}update(){this.lazy?this.dirty=!0:this.sync?this.run():An(this)}run(){if(this.active){const t=this.get();if(t!==this.value||c(t)||this.deep){const e=this.value;if(this.value=t,this.user){const n=`callback for watcher "${this.expression}"`;Pe(this.cb,this.vm,[t,e],this.vm,n)}else this.cb.call(this.vm,t,e)}}}evaluate(){this.value=this.get(),this.dirty=!1}depend(){let t=this.deps.length;for(;t--;)this.deps[t].depend()}teardown(){if(this.vm&&!this.vm._isBeingDestroyed&&_(this.vm._scope.effects,this),this.active){let t=this.deps.length;for(;t--;)this.deps[t].removeSub(this);this.active=!1,this.onStop&&this.onStop()}}}function an(t,e){rn.$on(t,e)}function ln(t,e){rn.$off(t,e)}function un(t,e){const n=rn;return function o(){const r=e.apply(null,arguments);null!==r&&n.$off(t,o)}}function fn(t,e,n){rn=t,Gt(e,n||{},an,ln,un,t),rn=void 0}let dn=null;function pn(t){const e=dn;return dn=t,()=>{dn=e}}function hn(t){for(;t&&(t=t.$parent);)if(t._inactive)return!0;return!1}function mn(t,e){if(e){if(t._directInactive=!1,hn(t))return}else if(t._directInactive)return;if(t._inactive||null===t._inactive){t._inactive=!1;for(let e=0;e<t.$children.length;e++)mn(t.$children[e]);vn(t,"activated")}}function _n(t,e){if(!(e&&(t._directInactive=!0,hn(t))||t._inactive)){t._inactive=!0;for(let e=0;e<t.$children.length;e++)_n(t.$children[e]);vn(t,"deactivated")}}function vn(t,e,n,o=!0){pt();const r=rt;o&&st(t);const s=t.$options[e],i=`${e} hook`;if(s)for(let e=0,o=s.length;e<o;e++)Pe(s[e],t,n||null,t,i);t._hasHookEvent&&t.$emit("hook:"+e),o&&st(r),ht()}const yn=[],gn=[];let bn={},$n=!1,wn=!1,Cn=0;let xn=0,kn=Date.now;if(z&&!W){const t=window.performance;t&&"function"==typeof t.now&&kn()>document.createEvent("Event").timeStamp&&(kn=()=>t.now())}const On=(t,e)=>{if(t.post){if(!e.post)return 1}else if(e.post)return-1;return t.id-e.id};function Sn(){let t,e;for(xn=kn(),wn=!0,yn.sort(On),Cn=0;Cn<yn.length;Cn++)t=yn[Cn],t.before&&t.before(),e=t.id,bn[e]=null,t.run();const n=gn.slice(),o=yn.slice();Cn=yn.length=gn.length=0,bn={},$n=wn=!1,function(t){for(let e=0;e<t.length;e++)t[e]._inactive=!0,mn(t[e],!0)}(n),function(t){let e=t.length;for(;e--;){const n=t[e],o=n.vm;o&&o._watcher===n&&o._isMounted&&!o._isDestroyed&&vn(o,"updated")}}(o),tt&&L.devtools&&tt.emit("flush")}function An(t){const e=t.id;if(null==bn[e]&&(t!==ft.target||!t.noRecurse)){if(bn[e]=!0,wn){let e=yn.length-1;for(;e>Cn&&yn[e].id>t.id;)e--;yn.splice(e+1,0,t)}else yn.push(t);$n||($n=!0,Ue(Sn))}}function Tn(t,e){if(t){const n=Object.create(null),o=nt?Reflect.ownKeys(t):Object.keys(t);for(let r=0;r<o.length;r++){const s=o[r];if("__ob__"===s)continue;const c=t[s].from;if(c in e._provided)n[s]=e._provided[c];else if("default"in t[s]){const o=t[s].default;n[s]=i(o)?o.call(e):o}}return n}}function jn(n,o,s,i,c){const a=c.options;let l;y(i,"_uid")?(l=Object.create(i),l._original=i):(l=i,i=i._original);const u=r(a._compiled),f=!u;this.data=n,this.props=o,this.children=s,this.parent=i,this.listeners=n.on||t,this.injections=Tn(a.inject,i),this.slots=()=>(this.$slots||ye(i,n.scopedSlots,this.$slots=me(s,i)),this.$slots),Object.defineProperty(this,"scopedSlots",{enumerable:!0,get(){return ye(i,n.scopedSlots,this.slots())}}),u&&(this.$options=a,this.$slots=this.slots(),this.$scopedSlots=ye(i,n.scopedSlots,this.$slots)),a._scopeId?this._c=(t,n,o,r)=>{const s=Te(l,t,n,o,r,f);return s&&!e(s)&&(s.fnScopeId=a._scopeId,s.fnContext=i),s}:this._c=(t,e,n,o)=>Te(l,t,e,n,o,f)}function En(t,e,n,o,r){const s=lt(t);return s.fnContext=n,s.fnOptions=o,e.slot&&((s.data||(s.data={})).slot=e.slot),s}function Pn(t,e){for(const n in e)t[$(n)]=e[n]}function In(t){return t.name||t.__name||t._componentTag}he(jn.prototype);const Dn={init(t,e){if(t.componentInstance&&!t.componentInstance._isDestroyed&&t.data.keepAlive){const e=t;Dn.prepatch(e,e)}else{(t.componentInstance=function(t,e){const n={_isComponent:!0,_parentVnode:t,parent:e},r=t.data.inlineTemplate;o(r)&&(n.render=r.render,n.staticRenderFns=r.staticRenderFns);return new t.componentOptions.Ctor(n)}(t,dn)).$mount(e?t.elm:void 0,e)}},prepatch(e,n){const o=n.componentOptions;!function(e,n,o,r,s){const i=r.data.scopedSlots,c=e.$scopedSlots,a=!!(i&&!i.$stable||c!==t&&!c.$stable||i&&e.$scopedSlots.$key!==i.$key||!i&&e.$scopedSlots.$key);let l=!!(s||e.$options._renderChildren||a);const u=e.$vnode;e.$options._parentVnode=r,e.$vnode=r,e._vnode&&(e._vnode.parent=r),e.$options._renderChildren=s;const f=r.data.attrs||t;e._attrsProxy&&we(e._attrsProxy,f,u.data&&u.data.attrs||t,e,"$attrs")&&(l=!0),e.$attrs=f,o=o||t;const d=e.$options._parentListeners;if(e._listenersProxy&&we(e._listenersProxy,o,d||t,e,"$listeners"),e.$listeners=e.$options._parentListeners=o,fn(e,o,d),n&&e.$options.props){bt(!1);const t=e._props,o=e.$options._propKeys||[];for(let r=0;r<o.length;r++){const s=o[r],i=e.$options.props;t[s]=qn(s,i,n,e)}bt(!0),e.$options.propsData=n}l&&(e.$slots=me(s,r.context),e.$forceUpdate())}(n.componentInstance=e.componentInstance,o.propsData,o.listeners,n,o.children)},insert(t){const{context:e,componentInstance:n}=t;var o;n._isMounted||(n._isMounted=!0,vn(n,"mounted")),t.data.keepAlive&&(e._isMounted?((o=n)._inactive=!1,gn.push(o)):mn(n,!0))},destroy(t){const{componentInstance:e}=t;e._isDestroyed||(t.data.keepAlive?_n(e,!0):e.$destroy())}},Nn=Object.keys(Dn);function Mn(s,i,a,l,u){if(n(s))return;const d=a.$options._base;if(c(s)&&(s=d.extend(s)),"function"!=typeof s)return;let p;if(n(s.cid)&&(p=s,s=function(t,e){if(r(t.error)&&o(t.errorComp))return t.errorComp;if(o(t.resolved))return t.resolved;const s=Oe;if(s&&o(t.owners)&&-1===t.owners.indexOf(s)&&t.owners.push(s),r(t.loading)&&o(t.loadingComp))return t.loadingComp;if(s&&!o(t.owners)){const r=t.owners=[s];let i=!0,a=null,l=null;s.$on("hook:destroyed",(()=>_(r,s)));const u=t=>{for(let t=0,e=r.length;t<e;t++)r[t].$forceUpdate();t&&(r.length=0,null!==a&&(clearTimeout(a),a=null),null!==l&&(clearTimeout(l),l=null))},d=D((n=>{t.resolved=Se(n,e),i?r.length=0:u(!0)})),p=D((e=>{o(t.errorComp)&&(t.error=!0,u(!0))})),h=t(d,p);return c(h)&&(f(h)?n(t.resolved)&&h.then(d,p):f(h.component)&&(h.component.then(d,p),o(h.error)&&(t.errorComp=Se(h.error,e)),o(h.loading)&&(t.loadingComp=Se(h.loading,e),0===h.delay?t.loading=!0:a=setTimeout((()=>{a=null,n(t.resolved)&&n(t.error)&&(t.loading=!0,u(!1))}),h.delay||200)),o(h.timeout)&&(l=setTimeout((()=>{l=null,n(t.resolved)&&p(null)}),h.timeout)))),i=!1,t.loading?t.loadingComp:t.resolved}}(p,d),void 0===s))return function(t,e,n,o,r){const s=ct();return s.asyncFactory=t,s.asyncMeta={data:e,context:n,children:o,tag:r},s}(p,i,a,l,u);i=i||{},co(s),o(i.model)&&function(t,n){const r=t.model&&t.model.prop||"value",s=t.model&&t.model.event||"input";(n.attrs||(n.attrs={}))[r]=n.model.value;const i=n.on||(n.on={}),c=i[s],a=n.model.callback;o(c)?(e(c)?-1===c.indexOf(a):c!==a)&&(i[s]=[a].concat(c)):i[s]=a}(s.options,i);const h=function(t,e,r){const s=e.options.props;if(n(s))return;const i={},{attrs:c,props:a}=t;if(o(c)||o(a))for(const t in s){const e=x(t);Jt(i,a,t,e,!0)||Jt(i,c,t,e,!1)}return i}(i,s);if(r(s.options.functional))return function(n,r,s,i,c){const a=n.options,l={},u=a.props;if(o(u))for(const e in u)l[e]=qn(e,u,r||t);else o(s.attrs)&&Pn(l,s.attrs),o(s.props)&&Pn(l,s.props);const f=new jn(s,l,c,i,n),d=a.render.call(null,f._c,f);if(d instanceof it)return En(d,s,f.parent,a);if(e(d)){const t=Xt(d)||[],e=new Array(t.length);for(let n=0;n<t.length;n++)e[n]=En(t[n],s,f.parent,a);return e}}(s,h,i,a,l);const m=i.on;if(i.on=i.nativeOn,r(s.options.abstract)){const t=i.slot;i={},t&&(i.slot=t)}!function(t){const e=t.hook||(t.hook={});for(let t=0;t<Nn.length;t++){const n=Nn[t],o=e[n],r=Dn[n];o===r||o&&o._merged||(e[n]=o?Rn(r,o):r)}}(i);const v=In(s.options)||u;return new it(`vue-component-${s.cid}${v?`-${v}`:""}`,i,void 0,void 0,void 0,a,{Ctor:s,propsData:h,listeners:m,tag:u,children:l},p)}function Rn(t,e){const n=(n,o)=>{t(n,o),e(n,o)};return n._merged=!0,n}let Ln=T;const Fn=L.optionMergeStrategies;function Un(t,e){if(!e)return t;let n,o,r;const s=nt?Reflect.ownKeys(e):Object.keys(e);for(let i=0;i<s.length;i++)n=s[i],"__ob__"!==n&&(o=t[n],r=e[n],y(t,n)?o!==r&&l(o)&&l(r)&&Un(o,r):kt(t,n,r));return t}function Bn(t,e,n){return n?function(){const o=i(e)?e.call(n,n):e,r=i(t)?t.call(n,n):t;return o?Un(o,r):r}:e?t?function(){return Un(i(e)?e.call(this,this):e,i(t)?t.call(this,this):t)}:e:t}function Vn(t,n){const o=n?t?t.concat(n):e(n)?n:[n]:t;return o?function(t){const e=[];for(let n=0;n<t.length;n++)-1===e.indexOf(t[n])&&e.push(t[n]);return e}(o):o}function zn(t,e,n,o){const r=Object.create(t||null);return e?S(r,e):r}Fn.data=function(t,e,n){return n?Bn(t,e,n):e&&"function"!=typeof e?t:Bn(t,e)},R.forEach((t=>{Fn[t]=Vn})),M.forEach((function(t){Fn[t+"s"]=zn})),Fn.watch=function(t,n,o,r){if(t===J&&(t=void 0),n===J&&(n=void 0),!n)return Object.create(t||null);if(!t)return n;const s={};S(s,t);for(const t in n){let o=s[t];const r=n[t];o&&!e(o)&&(o=[o]),s[t]=o?o.concat(r):e(r)?r:[r]}return s},Fn.props=Fn.methods=Fn.inject=Fn.computed=function(t,e,n,o){if(!t)return e;const r=Object.create(null);return S(r,t),e&&S(r,e),r},Fn.provide=Bn;const Hn=function(t,e){return void 0===e?t:e};function Wn(t,n,o){if(i(n)&&(n=n.options),function(t,n){const o=t.props;if(!o)return;const r={};let s,i,c;if(e(o))for(s=o.length;s--;)i=o[s],"string"==typeof i&&(c=$(i),r[c]={type:null});else if(l(o))for(const t in o)i=o[t],c=$(t),r[c]=l(i)?i:{type:i};t.props=r}(n),function(t,n){const o=t.inject;if(!o)return;const r=t.inject={};if(e(o))for(let t=0;t<o.length;t++)r[o[t]]={from:o[t]};else if(l(o))for(const t in o){const e=o[t];r[t]=l(e)?S({from:t},e):{from:e}}}(n),function(t){const e=t.directives;if(e)for(const t in e){const n=e[t];i(n)&&(e[t]={bind:n,update:n})}}(n),!n._base&&(n.extends&&(t=Wn(t,n.extends,o)),n.mixins))for(let e=0,r=n.mixins.length;e<r;e++)t=Wn(t,n.mixins[e],o);const r={};let s;for(s in t)c(s);for(s in n)y(t,s)||c(s);function c(e){const s=Fn[e]||Hn;r[e]=s(t[e],n[e],o,e)}return r}function Kn(t,e,n,o){if("string"!=typeof n)return;const r=t[e];if(y(r,n))return r[n];const s=$(n);if(y(r,s))return r[s];const i=w(s);if(y(r,i))return r[i];return r[n]||r[s]||r[i]}function qn(t,e,n,o){const r=e[t],s=!y(n,t);let c=n[t];const a=Xn(Boolean,r.type);if(a>-1)if(s&&!y(r,"default"))c=!1;else if(""===c||c===x(t)){const t=Xn(String,r.type);(t<0||a<t)&&(c=!0)}if(void 0===c){c=function(t,e,n){if(!y(e,"default"))return;const o=e.default;if(t&&t.$options.propsData&&void 0===t.$options.propsData[n]&&void 0!==t._props[n])return t._props[n];return i(o)&&"Function"!==Zn(e.type)?o.call(t):o}(o,r,t);const e=gt;bt(!0),Ct(c),bt(e)}return c}const Gn=/^\s*function (\w+)/;function Zn(t){const e=t&&t.toString().match(Gn);return e?e[1]:""}function Jn(t,e){return Zn(t)===Zn(e)}function Xn(t,n){if(!e(n))return Jn(n,t)?0:-1;for(let e=0,o=n.length;e<o;e++)if(Jn(n[e],t))return e;return-1}const Qn={enumerable:!0,configurable:!0,get:T,set:T};function Yn(t,e,n){Qn.get=function(){return this[e][n]},Qn.set=function(t){this[e][n]=t},Object.defineProperty(t,n,Qn)}function to(t){const n=t.$options;if(n.props&&function(t,e){const n=t.$options.propsData||{},o=t._props=At({}),r=t.$options._propKeys=[];t.$parent&&bt(!1);for(const s in e){r.push(s);xt(o,s,qn(s,e,n,t)),s in t||Yn(t,"_props",s)}bt(!0)}(t,n.props),function(t){const e=t.$options,n=e.setup;if(n){const o=t._setupContext=$e(t);st(t),pt();const r=Pe(n,null,[t._props||At({}),o],t,"setup");if(ht(),st(),i(r))e.render=r;else if(c(r))if(t._setupState=r,r.__sfc){const e=t._setupProxy={};for(const t in r)"__sfc"!==t&&Nt(e,r,t)}else for(const e in r)F(e)||Nt(t,r,e)}}(t),n.methods&&function(t,e){t.$options.props;for(const n in e)t[n]="function"!=typeof e[n]?T:k(e[n],t)}(t,n.methods),n.data)!function(t){let e=t.$options.data;e=t._data=i(e)?function(t,e){pt();try{return t.call(e,e)}catch(t){return Ee(t,e,"data()"),{}}finally{ht()}}(e,t):e||{},l(e)||(e={});const n=Object.keys(e),o=t.$options.props;t.$options.methods;let r=n.length;for(;r--;){const e=n[r];o&&y(o,e)||F(e)||Yn(t,"_data",e)}const s=Ct(e);s&&s.vmCount++}(t);else{const e=Ct(t._data={});e&&e.vmCount++}n.computed&&function(t,e){const n=t._computedWatchers=Object.create(null),o=Y();for(const r in e){const s=e[r],c=i(s)?s:s.get;o||(n[r]=new cn(t,c||T,T,eo)),r in t||no(t,r,s)}}(t,n.computed),n.watch&&n.watch!==J&&function(t,n){for(const o in n){const r=n[o];if(e(r))for(let e=0;e<r.length;e++)so(t,o,r[e]);else so(t,o,r)}}(t,n.watch)}const eo={lazy:!0};function no(t,e,n){const o=!Y();i(n)?(Qn.get=o?oo(e):ro(n),Qn.set=T):(Qn.get=n.get?o&&!1!==n.cache?oo(e):ro(n.get):T,Qn.set=n.set||T),Object.defineProperty(t,e,Qn)}function oo(t){return function(){const e=this._computedWatchers&&this._computedWatchers[t];if(e)return e.dirty&&e.evaluate(),ft.target&&e.depend(),e.value}}function ro(t){return function(){return t.call(this,this)}}function so(t,e,n,o){return l(n)&&(o=n,n=n.handler),"string"==typeof n&&(n=t[n]),t.$watch(e,n,o)}let io=0;function co(t){let e=t.options;if(t.super){const n=co(t.super);if(n!==t.superOptions){t.superOptions=n;const o=function(t){let e;const n=t.options,o=t.sealedOptions;for(const t in n)n[t]!==o[t]&&(e||(e={}),e[t]=n[t]);return e}(t);o&&S(t.extendOptions,o),e=t.options=Wn(n,t.extendOptions),e.name&&(e.components[e.name]=t)}}return e}function ao(t){this._init(t)}function lo(t){t.cid=0;let e=1;t.extend=function(t){t=t||{};const n=this,o=n.cid,r=t._Ctor||(t._Ctor={});if(r[o])return r[o];const s=In(t)||In(n.options),i=function(t){this._init(t)};return(i.prototype=Object.create(n.prototype)).constructor=i,i.cid=e++,i.options=Wn(n.options,t),i.super=n,i.options.props&&function(t){const e=t.options.props;for(const n in e)Yn(t.prototype,"_props",n)}(i),i.options.computed&&function(t){const e=t.options.computed;for(const n in e)no(t.prototype,n,e[n])}(i),i.extend=n.extend,i.mixin=n.mixin,i.use=n.use,M.forEach((function(t){i[t]=n[t]})),s&&(i.options.components[s]=i),i.superOptions=n.options,i.extendOptions=t,i.sealedOptions=S({},i.options),r[o]=i,i}}function uo(t){return t&&(In(t.Ctor.options)||t.tag)}function fo(t,n){return e(t)?t.indexOf(n)>-1:"string"==typeof t?t.split(",").indexOf(n)>-1:(o=t,"[object RegExp]"===a.call(o)&&t.test(n));var o}function po(t,e){const{cache:n,keys:o,_vnode:r}=t;for(const t in n){const s=n[t];if(s){const i=s.name;i&&!e(i)&&ho(n,t,o,r)}}}function ho(t,e,n,o){const r=t[e];!r||o&&r.tag===o.tag||r.componentInstance.$destroy(),t[e]=null,_(n,e)}!function(e){e.prototype._init=function(e){const n=this;n._uid=io++,n._isVue=!0,n.__v_skip=!0,n._scope=new Ht(!0),n._scope._vm=!0,e&&e._isComponent?function(t,e){const n=t.$options=Object.create(t.constructor.options),o=e._parentVnode;n.parent=e.parent,n._parentVnode=o;const r=o.componentOptions;n.propsData=r.propsData,n._parentListeners=r.listeners,n._renderChildren=r.children,n._componentTag=r.tag,e.render&&(n.render=e.render,n.staticRenderFns=e.staticRenderFns)}(n,e):n.$options=Wn(co(n.constructor),e||{},n),n._renderProxy=n,n._self=n,function(t){const e=t.$options;let n=e.parent;if(n&&!e.abstract){for(;n.$options.abstract&&n.$parent;)n=n.$parent;n.$children.push(t)}t.$parent=n,t.$root=n?n.$root:t,t.$children=[],t.$refs={},t._provided=n?n._provided:Object.create(null),t._watcher=null,t._inactive=null,t._directInactive=!1,t._isMounted=!1,t._isDestroyed=!1,t._isBeingDestroyed=!1}(n),function(t){t._events=Object.create(null),t._hasHookEvent=!1;const e=t.$options._parentListeners;e&&fn(t,e)}(n),function(e){e._vnode=null,e._staticTrees=null;const n=e.$options,o=e.$vnode=n._parentVnode,r=o&&o.context;e.$slots=me(n._renderChildren,r),e.$scopedSlots=o?ye(e.$parent,o.data.scopedSlots,e.$slots):t,e._c=(t,n,o,r)=>Te(e,t,n,o,r,!1),e.$createElement=(t,n,o,r)=>Te(e,t,n,o,r,!0);const s=o&&o.data;xt(e,"$attrs",s&&s.attrs||t,null,!0),xt(e,"$listeners",n._parentListeners||t,null,!0)}(n),vn(n,"beforeCreate",void 0,!1),function(t){const e=Tn(t.$options.inject,t);e&&(bt(!1),Object.keys(e).forEach((n=>{xt(t,n,e[n])})),bt(!0))}(n),to(n),function(t){const e=t.$options.provide;if(e){const n=i(e)?e.call(t):e;if(!c(n))return;const o=Wt(t),r=nt?Reflect.ownKeys(n):Object.keys(n);for(let t=0;t<r.length;t++){const e=r[t];Object.defineProperty(o,e,Object.getOwnPropertyDescriptor(n,e))}}}(n),vn(n,"created"),n.$options.el&&n.$mount(n.$options.el)}}(ao),function(t){const e={get:function(){return this._data}},n={get:function(){return this._props}};Object.defineProperty(t.prototype,"$data",e),Object.defineProperty(t.prototype,"$props",n),t.prototype.$set=kt,t.prototype.$delete=Ot,t.prototype.$watch=function(t,e,n){const o=this;if(l(e))return so(o,t,e,n);(n=n||{}).user=!0;const r=new cn(o,t,e,n);if(n.immediate){const t=`callback for immediate watcher "${r.expression}"`;pt(),Pe(e,o,[r.value],o,t),ht()}return function(){r.teardown()}}}(ao),function(t){const n=/^hook:/;t.prototype.$on=function(t,o){const r=this;if(e(t))for(let e=0,n=t.length;e<n;e++)r.$on(t[e],o);else(r._events[t]||(r._events[t]=[])).push(o),n.test(t)&&(r._hasHookEvent=!0);return r},t.prototype.$once=function(t,e){const n=this;function o(){n.$off(t,o),e.apply(n,arguments)}return o.fn=e,n.$on(t,o),n},t.prototype.$off=function(t,n){const o=this;if(!arguments.length)return o._events=Object.create(null),o;if(e(t)){for(let e=0,r=t.length;e<r;e++)o.$off(t[e],n);return o}const r=o._events[t];if(!r)return o;if(!n)return o._events[t]=null,o;let s,i=r.length;for(;i--;)if(s=r[i],s===n||s.fn===n){r.splice(i,1);break}return o},t.prototype.$emit=function(t){const e=this;let n=e._events[t];if(n){n=n.length>1?O(n):n;const o=O(arguments,1),r=`event handler for "${t}"`;for(let t=0,s=n.length;t<s;t++)Pe(n[t],e,o,e,r)}return e}}(ao),function(t){t.prototype._update=function(t,e){const n=this,o=n.$el,r=n._vnode,s=pn(n);n._vnode=t,n.$el=r?n.__patch__(r,t):n.__patch__(n.$el,t,e,!1),s(),o&&(o.__vue__=null),n.$el&&(n.$el.__vue__=n);let i=n;for(;i&&i.$vnode&&i.$parent&&i.$vnode===i.$parent._vnode;)i.$parent.$el=i.$el,i=i.$parent},t.prototype.$forceUpdate=function(){const t=this;t._watcher&&t._watcher.update()},t.prototype.$destroy=function(){const t=this;if(t._isBeingDestroyed)return;vn(t,"beforeDestroy"),t._isBeingDestroyed=!0;const e=t.$parent;!e||e._isBeingDestroyed||t.$options.abstract||_(e.$children,t),t._scope.stop(),t._data.__ob__&&t._data.__ob__.vmCount--,t._isDestroyed=!0,t.__patch__(t._vnode,null),vn(t,"destroyed"),t.$off(),t.$el&&(t.$el.__vue__=null),t.$vnode&&(t.$vnode.parent=null)}}(ao),function(t){he(t.prototype),t.prototype.$nextTick=function(t){return Ue(t,this)},t.prototype._render=function(){const t=this,{render:n,_parentVnode:o}=t.$options;let r;o&&t._isMounted&&(t.$scopedSlots=ye(t.$parent,o.data.scopedSlots,t.$slots,t.$scopedSlots),t._slotsProxy&&xe(t._slotsProxy,t.$scopedSlots)),t.$vnode=o;try{st(t),Oe=t,r=n.call(t._renderProxy,t.$createElement)}catch(e){Ee(e,t,"render"),r=t._vnode}finally{Oe=null,st()}return e(r)&&1===r.length&&(r=r[0]),r instanceof it||(r=ct()),r.parent=o,r}}(ao);const mo=[String,RegExp,Array];var _o={KeepAlive:{name:"keep-alive",abstract:!0,props:{include:mo,exclude:mo,max:[String,Number]},methods:{cacheVNode(){const{cache:t,keys:e,vnodeToCache:n,keyToCache:o}=this;if(n){const{tag:r,componentInstance:s,componentOptions:i}=n;t[o]={name:uo(i),tag:r,componentInstance:s},e.push(o),this.max&&e.length>parseInt(this.max)&&ho(t,e[0],e,this._vnode),this.vnodeToCache=null}}},created(){this.cache=Object.create(null),this.keys=[]},destroyed(){for(const t in this.cache)ho(this.cache,t,this.keys)},mounted(){this.cacheVNode(),this.$watch("include",(t=>{po(this,(e=>fo(t,e)))})),this.$watch("exclude",(t=>{po(this,(e=>!fo(t,e)))}))},updated(){this.cacheVNode()},render(){const t=this.$slots.default,e=Ae(t),n=e&&e.componentOptions;if(n){const t=uo(n),{include:o,exclude:r}=this;if(o&&(!t||!fo(o,t))||r&&t&&fo(r,t))return e;const{cache:s,keys:i}=this,c=null==e.key?n.Ctor.cid+(n.tag?`::${n.tag}`:""):e.key;s[c]?(e.componentInstance=s[c].componentInstance,_(i,c),i.push(c)):(this.vnodeToCache=e,this.keyToCache=c),e.data.keepAlive=!0}return e||t&&t[0]}}};!function(t){const e={get:()=>L};Object.defineProperty(t,"config",e),t.util={warn:Ln,extend:S,mergeOptions:Wn,defineReactive:xt},t.set=kt,t.delete=Ot,t.nextTick=Ue,t.observable=t=>(Ct(t),t),t.options=Object.create(null),M.forEach((e=>{t.options[e+"s"]=Object.create(null)})),t.options._base=t,S(t.options.components,_o),function(t){t.use=function(t){const e=this._installedPlugins||(this._installedPlugins=[]);if(e.indexOf(t)>-1)return this;const n=O(arguments,1);return n.unshift(this),i(t.install)?t.install.apply(t,n):i(t)&&t.apply(null,n),e.push(t),this}}(t),function(t){t.mixin=function(t){return this.options=Wn(this.options,t),this}}(t),lo(t),function(t){M.forEach((e=>{t[e]=function(t,n){return n?("component"===e&&l(n)&&(n.name=n.name||t,n=this.options._base.extend(n)),"directive"===e&&i(n)&&(n={bind:n,update:n}),this.options[e+"s"][t]=n,n):this.options[e+"s"][t]}}))}(t)}(ao),Object.defineProperty(ao.prototype,"$isServer",{get:Y}),Object.defineProperty(ao.prototype,"$ssrContext",{get(){return this.$vnode&&this.$vnode.ssrContext}}),Object.defineProperty(ao,"FunctionalRenderContext",{value:jn}),ao.version="2.7.10";const vo=h("style,class"),yo=h("input,textarea,option,select,progress"),go=h("contenteditable,draggable,spellcheck"),bo=h("events,caret,typing,plaintext-only"),$o=h("allowfullscreen,async,autofocus,autoplay,checked,compact,controls,declare,default,defaultchecked,defaultmuted,defaultselected,defer,disabled,enabled,formnovalidate,hidden,indeterminate,inert,ismap,itemscope,loop,multiple,muted,nohref,noresize,noshade,novalidate,nowrap,open,pauseonexit,readonly,required,reversed,scoped,seamless,selected,sortable,truespeed,typemustmatch,visible"),wo="http://www.w3.org/1999/xlink",Co=t=>":"===t.charAt(5)&&"xlink"===t.slice(0,5),xo=t=>Co(t)?t.slice(6,t.length):"",ko=t=>null==t||!1===t;function Oo(t){let e=t.data,n=t,r=t;for(;o(r.componentInstance);)r=r.componentInstance._vnode,r&&r.data&&(e=So(r.data,e));for(;o(n=n.parent);)n&&n.data&&(e=So(e,n.data));return function(t,e){if(o(t)||o(e))return Ao(t,To(e));return""}(e.staticClass,e.class)}function So(t,e){return{staticClass:Ao(t.staticClass,e.staticClass),class:o(t.class)?[t.class,e.class]:e.class}}function Ao(t,e){return t?e?t+" "+e:t:e||""}function To(t){return Array.isArray(t)?function(t){let e,n="";for(let r=0,s=t.length;r<s;r++)o(e=To(t[r]))&&""!==e&&(n&&(n+=" "),n+=e);return n}(t):c(t)?function(t){let e="";for(const n in t)t[n]&&(e&&(e+=" "),e+=n);return e}(t):"string"==typeof t?t:""}const jo={svg:"http://www.w3.org/2000/svg",math:"http://www.w3.org/1998/Math/MathML"},Eo=h("html,body,base,head,link,meta,style,title,address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,div,dd,dl,dt,figcaption,figure,picture,hr,img,li,main,ol,p,pre,ul,a,b,abbr,bdi,bdo,br,cite,code,data,dfn,em,i,kbd,mark,q,rp,rt,rtc,ruby,s,samp,small,span,strong,sub,sup,time,u,var,wbr,area,audio,map,track,video,embed,object,param,source,canvas,script,noscript,del,ins,caption,col,colgroup,table,thead,tbody,td,th,tr,button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,output,progress,select,textarea,details,dialog,menu,menuitem,summary,content,element,shadow,template,blockquote,iframe,tfoot"),Po=h("svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,foreignobject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view",!0),Io=t=>Eo(t)||Po(t);const Do=Object.create(null);const No=h("text,number,password,search,email,tel,url");var Mo=Object.freeze({__proto__:null,createElement:function(t,e){const n=document.createElement(t);return"select"!==t||e.data&&e.data.attrs&&void 0!==e.data.attrs.multiple&&n.setAttribute("multiple","multiple"),n},createElementNS:function(t,e){return document.createElementNS(jo[t],e)},createTextNode:function(t){return document.createTextNode(t)},createComment:function(t){return document.createComment(t)},insertBefore:function(t,e,n){t.insertBefore(e,n)},removeChild:function(t,e){t.removeChild(e)},appendChild:function(t,e){t.appendChild(e)},parentNode:function(t){return t.parentNode},nextSibling:function(t){return t.nextSibling},tagName:function(t){return t.tagName},setTextContent:function(t,e){t.textContent=e},setStyleScope:function(t,e){t.setAttribute(e,"")}}),Ro={create(t,e){Lo(e)},update(t,e){t.data.ref!==e.data.ref&&(Lo(t,!0),Lo(e))},destroy(t){Lo(t,!0)}};function Lo(t,n){const r=t.data.ref;if(!o(r))return;const s=t.context,c=t.componentInstance||t.elm,a=n?null:c,l=n?void 0:c;if(i(r))return void Pe(r,s,[a],s,"template ref function");const u=t.data.refInFor,f="string"==typeof r||"number"==typeof r,d=It(r),p=s.$refs;if(f||d)if(u){const t=f?p[r]:r.value;n?e(t)&&_(t,c):e(t)?t.includes(c)||t.push(c):f?(p[r]=[c],Fo(s,r,p[r])):r.value=[c]}else if(f){if(n&&p[r]!==c)return;p[r]=l,Fo(s,r,a)}else if(d){if(n&&r.value!==c)return;r.value=a}}function Fo({_setupState:t},e,n){t&&y(t,e)&&(It(t[e])?t[e].value=n:t[e]=n)}const Uo=new it("",{},[]),Bo=["create","activate","update","remove","destroy"];function Vo(t,e){return t.key===e.key&&t.asyncFactory===e.asyncFactory&&(t.tag===e.tag&&t.isComment===e.isComment&&o(t.data)===o(e.data)&&function(t,e){if("input"!==t.tag)return!0;let n;const r=o(n=t.data)&&o(n=n.attrs)&&n.type,s=o(n=e.data)&&o(n=n.attrs)&&n.type;return r===s||No(r)&&No(s)}(t,e)||r(t.isAsyncPlaceholder)&&n(e.asyncFactory.error))}function zo(t,e,n){let r,s;const i={};for(r=e;r<=n;++r)s=t[r].key,o(s)&&(i[s]=r);return i}var Ho={create:Wo,update:Wo,destroy:function(t){Wo(t,Uo)}};function Wo(t,e){(t.data.directives||e.data.directives)&&function(t,e){const n=t===Uo,o=e===Uo,r=qo(t.data.directives,t.context),s=qo(e.data.directives,e.context),i=[],c=[];let a,l,u;for(a in s)l=r[a],u=s[a],l?(u.oldValue=l.value,u.oldArg=l.arg,Zo(u,"update",e,t),u.def&&u.def.componentUpdated&&c.push(u)):(Zo(u,"bind",e,t),u.def&&u.def.inserted&&i.push(u));if(i.length){const o=()=>{for(let n=0;n<i.length;n++)Zo(i[n],"inserted",e,t)};n?Zt(e,"insert",o):o()}c.length&&Zt(e,"postpatch",(()=>{for(let n=0;n<c.length;n++)Zo(c[n],"componentUpdated",e,t)}));if(!n)for(a in r)s[a]||Zo(r[a],"unbind",t,t,o)}(t,e)}const Ko=Object.create(null);function qo(t,e){const n=Object.create(null);if(!t)return n;let o,r;for(o=0;o<t.length;o++){if(r=t[o],r.modifiers||(r.modifiers=Ko),n[Go(r)]=r,e._setupState&&e._setupState.__sfc){const t=r.def||Kn(e,"_setupState","v-"+r.name);r.def="function"==typeof t?{bind:t,update:t}:t}r.def=r.def||Kn(e.$options,"directives",r.name)}return n}function Go(t){return t.rawName||`${t.name}.${Object.keys(t.modifiers||{}).join(".")}`}function Zo(t,e,n,o,r){const s=t.def&&t.def[e];if(s)try{s(n.elm,t,n,o,r)}catch(o){Ee(o,n.context,`directive ${t.name} ${e} hook`)}}var Jo=[Ro,Ho];function Xo(t,e){const s=e.componentOptions;if(o(s)&&!1===s.Ctor.options.inheritAttrs)return;if(n(t.data.attrs)&&n(e.data.attrs))return;let i,c,a;const l=e.elm,u=t.data.attrs||{};let f=e.data.attrs||{};for(i in(o(f.__ob__)||r(f._v_attr_proxy))&&(f=e.data.attrs=S({},f)),f)c=f[i],a=u[i],a!==c&&Qo(l,i,c,e.data.pre);for(i in(W||q)&&f.value!==u.value&&Qo(l,"value",f.value),u)n(f[i])&&(Co(i)?l.removeAttributeNS(wo,xo(i)):go(i)||l.removeAttribute(i))}function Qo(t,e,n,o){o||t.tagName.indexOf("-")>-1?Yo(t,e,n):$o(e)?ko(n)?t.removeAttribute(e):(n="allowfullscreen"===e&&"EMBED"===t.tagName?"true":e,t.setAttribute(e,n)):go(e)?t.setAttribute(e,((t,e)=>ko(e)||"false"===e?"false":"contenteditable"===t&&bo(e)?e:"true")(e,n)):Co(e)?ko(n)?t.removeAttributeNS(wo,xo(e)):t.setAttributeNS(wo,e,n):Yo(t,e,n)}function Yo(t,e,n){if(ko(n))t.removeAttribute(e);else{if(W&&!K&&"TEXTAREA"===t.tagName&&"placeholder"===e&&""!==n&&!t.__ieph){const e=n=>{n.stopImmediatePropagation(),t.removeEventListener("input",e)};t.addEventListener("input",e),t.__ieph=!0}t.setAttribute(e,n)}}var tr={create:Xo,update:Xo};function er(t,e){const r=e.elm,s=e.data,i=t.data;if(n(s.staticClass)&&n(s.class)&&(n(i)||n(i.staticClass)&&n(i.class)))return;let c=Oo(e);const a=r._transitionClasses;o(a)&&(c=Ao(c,To(a))),c!==r._prevClass&&(r.setAttribute("class",c),r._prevClass=c)}var nr={create:er,update:er};let or;function rr(t,e,n){const o=or;return function r(){const s=e.apply(null,arguments);null!==s&&cr(t,r,n,o)}}const sr=Ne&&!(Z&&Number(Z[1])<=53);function ir(t,e,n,o){if(sr){const t=xn,n=e;e=n._wrapper=function(e){if(e.target===e.currentTarget||e.timeStamp>=t||e.timeStamp<=0||e.target.ownerDocument!==document)return n.apply(this,arguments)}}or.addEventListener(t,e,Q?{capture:n,passive:o}:n)}function cr(t,e,n,o){(o||or).removeEventListener(t,e._wrapper||e,n)}function ar(t,e){if(n(t.data.on)&&n(e.data.on))return;const r=e.data.on||{},s=t.data.on||{};or=e.elm||t.elm,function(t){if(o(t.__r)){const e=W?"change":"input";t[e]=[].concat(t.__r,t[e]||[]),delete t.__r}o(t.__c)&&(t.change=[].concat(t.__c,t.change||[]),delete t.__c)}(r),Gt(r,s,ir,cr,rr,e.context),or=void 0}var lr={create:ar,update:ar,destroy:t=>ar(t,Uo)};let ur;function fr(t,e){if(n(t.data.domProps)&&n(e.data.domProps))return;let s,i;const c=e.elm,a=t.data.domProps||{};let l=e.data.domProps||{};for(s in(o(l.__ob__)||r(l._v_attr_proxy))&&(l=e.data.domProps=S({},l)),a)s in l||(c[s]="");for(s in l){if(i=l[s],"textContent"===s||"innerHTML"===s){if(e.children&&(e.children.length=0),i===a[s])continue;1===c.childNodes.length&&c.removeChild(c.childNodes[0])}if("value"===s&&"PROGRESS"!==c.tagName){c._value=i;const t=n(i)?"":String(i);dr(c,t)&&(c.value=t)}else if("innerHTML"===s&&Po(c.tagName)&&n(c.innerHTML)){ur=ur||document.createElement("div"),ur.innerHTML=`<svg>${i}</svg>`;const t=ur.firstChild;for(;c.firstChild;)c.removeChild(c.firstChild);for(;t.firstChild;)c.appendChild(t.firstChild)}else if(i!==a[s])try{c[s]=i}catch(t){}}}function dr(t,e){return!t.composing&&("OPTION"===t.tagName||function(t,e){let n=!0;try{n=document.activeElement!==t}catch(t){}return n&&t.value!==e}(t,e)||function(t,e){const n=t.value,r=t._vModifiers;if(o(r)){if(r.number)return p(n)!==p(e);if(r.trim)return n.trim()!==e.trim()}return n!==e}(t,e))}var pr={create:fr,update:fr};const hr=g((function(t){const e={},n=/:(.+)/;return t.split(/;(?![^(]*\))/g).forEach((function(t){if(t){const o=t.split(n);o.length>1&&(e[o[0].trim()]=o[1].trim())}})),e}));function mr(t){const e=_r(t.style);return t.staticStyle?S(t.staticStyle,e):e}function _r(t){return Array.isArray(t)?A(t):"string"==typeof t?hr(t):t}const vr=/^--/,yr=/\s*!important$/,gr=(t,e,n)=>{if(vr.test(e))t.style.setProperty(e,n);else if(yr.test(n))t.style.setProperty(x(e),n.replace(yr,""),"important");else{const o=wr(e);if(Array.isArray(n))for(let e=0,r=n.length;e<r;e++)t.style[o]=n[e];else t.style[o]=n}},br=["Webkit","Moz","ms"];let $r;const wr=g((function(t){if($r=$r||document.createElement("div").style,"filter"!==(t=$(t))&&t in $r)return t;const e=t.charAt(0).toUpperCase()+t.slice(1);for(let t=0;t<br.length;t++){const n=br[t]+e;if(n in $r)return n}}));function Cr(t,e){const r=e.data,s=t.data;if(n(r.staticStyle)&&n(r.style)&&n(s.staticStyle)&&n(s.style))return;let i,c;const a=e.elm,l=s.staticStyle,u=s.normalizedStyle||s.style||{},f=l||u,d=_r(e.data.style)||{};e.data.normalizedStyle=o(d.__ob__)?S({},d):d;const p=function(t,e){const n={};let o;if(e){let e=t;for(;e.componentInstance;)e=e.componentInstance._vnode,e&&e.data&&(o=mr(e.data))&&S(n,o)}(o=mr(t.data))&&S(n,o);let r=t;for(;r=r.parent;)r.data&&(o=mr(r.data))&&S(n,o);return n}(e,!0);for(c in f)n(p[c])&&gr(a,c,"");for(c in p)i=p[c],i!==f[c]&&gr(a,c,null==i?"":i)}var xr={create:Cr,update:Cr};const kr=/\s+/;function Or(t,e){if(e&&(e=e.trim()))if(t.classList)e.indexOf(" ")>-1?e.split(kr).forEach((e=>t.classList.add(e))):t.classList.add(e);else{const n=` ${t.getAttribute("class")||""} `;n.indexOf(" "+e+" ")<0&&t.setAttribute("class",(n+e).trim())}}function Sr(t,e){if(e&&(e=e.trim()))if(t.classList)e.indexOf(" ")>-1?e.split(kr).forEach((e=>t.classList.remove(e))):t.classList.remove(e),t.classList.length||t.removeAttribute("class");else{let n=` ${t.getAttribute("class")||""} `;const o=" "+e+" ";for(;n.indexOf(o)>=0;)n=n.replace(o," ");n=n.trim(),n?t.setAttribute("class",n):t.removeAttribute("class")}}function Ar(t){if(t){if("object"==typeof t){const e={};return!1!==t.css&&S(e,Tr(t.name||"v")),S(e,t),e}return"string"==typeof t?Tr(t):void 0}}const Tr=g((t=>({enterClass:`${t}-enter`,enterToClass:`${t}-enter-to`,enterActiveClass:`${t}-enter-active`,leaveClass:`${t}-leave`,leaveToClass:`${t}-leave-to`,leaveActiveClass:`${t}-leave-active`}))),jr=z&&!K;let Er="transition",Pr="transitionend",Ir="animation",Dr="animationend";jr&&(void 0===window.ontransitionend&&void 0!==window.onwebkittransitionend&&(Er="WebkitTransition",Pr="webkitTransitionEnd"),void 0===window.onanimationend&&void 0!==window.onwebkitanimationend&&(Ir="WebkitAnimation",Dr="webkitAnimationEnd"));const Nr=z?window.requestAnimationFrame?window.requestAnimationFrame.bind(window):setTimeout:t=>t();function Mr(t){Nr((()=>{Nr(t)}))}function Rr(t,e){const n=t._transitionClasses||(t._transitionClasses=[]);n.indexOf(e)<0&&(n.push(e),Or(t,e))}function Lr(t,e){t._transitionClasses&&_(t._transitionClasses,e),Sr(t,e)}function Fr(t,e,n){const{type:o,timeout:r,propCount:s}=Br(t,e);if(!o)return n();const i="transition"===o?Pr:Dr;let c=0;const a=()=>{t.removeEventListener(i,l),n()},l=e=>{e.target===t&&++c>=s&&a()};setTimeout((()=>{c<s&&a()}),r+1),t.addEventListener(i,l)}const Ur=/\b(transform|all)(,|$)/;function Br(t,e){const n=window.getComputedStyle(t),o=(n[Er+"Delay"]||"").split(", "),r=(n[Er+"Duration"]||"").split(", "),s=Vr(o,r),i=(n[Ir+"Delay"]||"").split(", "),c=(n[Ir+"Duration"]||"").split(", "),a=Vr(i,c);let l,u=0,f=0;"transition"===e?s>0&&(l="transition",u=s,f=r.length):"animation"===e?a>0&&(l="animation",u=a,f=c.length):(u=Math.max(s,a),l=u>0?s>a?"transition":"animation":null,f=l?"transition"===l?r.length:c.length:0);return{type:l,timeout:u,propCount:f,hasTransform:"transition"===l&&Ur.test(n[Er+"Property"])}}function Vr(t,e){for(;t.length<e.length;)t=t.concat(t);return Math.max.apply(null,e.map(((e,n)=>zr(e)+zr(t[n]))))}function zr(t){return 1e3*Number(t.slice(0,-1).replace(",","."))}function Hr(t,e){const r=t.elm;o(r._leaveCb)&&(r._leaveCb.cancelled=!0,r._leaveCb());const s=Ar(t.data.transition);if(n(s))return;if(o(r._enterCb)||1!==r.nodeType)return;const{css:a,type:l,enterClass:u,enterToClass:f,enterActiveClass:d,appearClass:h,appearToClass:m,appearActiveClass:_,beforeEnter:v,enter:y,afterEnter:g,enterCancelled:b,beforeAppear:$,appear:w,afterAppear:C,appearCancelled:x,duration:k}=s;let O=dn,S=dn.$vnode;for(;S&&S.parent;)O=S.context,S=S.parent;const A=!O._isMounted||!t.isRootInsert;if(A&&!w&&""!==w)return;const T=A&&h?h:u,j=A&&_?_:d,E=A&&m?m:f,P=A&&$||v,I=A&&i(w)?w:y,N=A&&C||g,M=A&&x||b,R=p(c(k)?k.enter:k),L=!1!==a&&!K,F=qr(I),U=r._enterCb=D((()=>{L&&(Lr(r,E),Lr(r,j)),U.cancelled?(L&&Lr(r,T),M&&M(r)):N&&N(r),r._enterCb=null}));t.data.show||Zt(t,"insert",(()=>{const e=r.parentNode,n=e&&e._pending&&e._pending[t.key];n&&n.tag===t.tag&&n.elm._leaveCb&&n.elm._leaveCb(),I&&I(r,U)})),P&&P(r),L&&(Rr(r,T),Rr(r,j),Mr((()=>{Lr(r,T),U.cancelled||(Rr(r,E),F||(Kr(R)?setTimeout(U,R):Fr(r,l,U)))}))),t.data.show&&(e&&e(),I&&I(r,U)),L||F||U()}function Wr(t,e){const r=t.elm;o(r._enterCb)&&(r._enterCb.cancelled=!0,r._enterCb());const s=Ar(t.data.transition);if(n(s)||1!==r.nodeType)return e();if(o(r._leaveCb))return;const{css:i,type:a,leaveClass:l,leaveToClass:u,leaveActiveClass:f,beforeLeave:d,leave:h,afterLeave:m,leaveCancelled:_,delayLeave:v,duration:y}=s,g=!1!==i&&!K,b=qr(h),$=p(c(y)?y.leave:y),w=r._leaveCb=D((()=>{r.parentNode&&r.parentNode._pending&&(r.parentNode._pending[t.key]=null),g&&(Lr(r,u),Lr(r,f)),w.cancelled?(g&&Lr(r,l),_&&_(r)):(e(),m&&m(r)),r._leaveCb=null}));function C(){w.cancelled||(!t.data.show&&r.parentNode&&((r.parentNode._pending||(r.parentNode._pending={}))[t.key]=t),d&&d(r),g&&(Rr(r,l),Rr(r,f),Mr((()=>{Lr(r,l),w.cancelled||(Rr(r,u),b||(Kr($)?setTimeout(w,$):Fr(r,a,w)))}))),h&&h(r,w),g||b||w())}v?v(C):C()}function Kr(t){return"number"==typeof t&&!isNaN(t)}function qr(t){if(n(t))return!1;const e=t.fns;return o(e)?qr(Array.isArray(e)?e[0]:e):(t._length||t.length)>1}function Gr(t,e){!0!==e.data.show&&Hr(e)}const Zr=function(t){let i,c;const a={},{modules:l,nodeOps:u}=t;for(i=0;i<Bo.length;++i)for(a[Bo[i]]=[],c=0;c<l.length;++c)o(l[c][Bo[i]])&&a[Bo[i]].push(l[c][Bo[i]]);function f(t){const e=u.parentNode(t);o(e)&&u.removeChild(e,t)}function d(t,e,n,s,i,c,l){if(o(t.elm)&&o(c)&&(t=c[l]=lt(t)),t.isRootInsert=!i,function(t,e,n,s){let i=t.data;if(o(i)){const c=o(t.componentInstance)&&i.keepAlive;if(o(i=i.hook)&&o(i=i.init)&&i(t,!1),o(t.componentInstance))return p(t,e),m(n,t.elm,s),r(c)&&function(t,e,n,r){let s,i=t;for(;i.componentInstance;)if(i=i.componentInstance._vnode,o(s=i.data)&&o(s=s.transition)){for(s=0;s<a.activate.length;++s)a.activate[s](Uo,i);e.push(i);break}m(n,t.elm,r)}(t,e,n,s),!0}}(t,e,n,s))return;const f=t.data,d=t.children,h=t.tag;o(h)?(t.elm=t.ns?u.createElementNS(t.ns,h):u.createElement(h,t),g(t),_(t,d,e),o(f)&&y(t,e),m(n,t.elm,s)):r(t.isComment)?(t.elm=u.createComment(t.text),m(n,t.elm,s)):(t.elm=u.createTextNode(t.text),m(n,t.elm,s))}function p(t,e){o(t.data.pendingInsert)&&(e.push.apply(e,t.data.pendingInsert),t.data.pendingInsert=null),t.elm=t.componentInstance.$el,v(t)?(y(t,e),g(t)):(Lo(t),e.push(t))}function m(t,e,n){o(t)&&(o(n)?u.parentNode(n)===t&&u.insertBefore(t,e,n):u.appendChild(t,e))}function _(t,n,o){if(e(n))for(let e=0;e<n.length;++e)d(n[e],o,t.elm,null,!0,n,e);else s(t.text)&&u.appendChild(t.elm,u.createTextNode(String(t.text)))}function v(t){for(;t.componentInstance;)t=t.componentInstance._vnode;return o(t.tag)}function y(t,e){for(let e=0;e<a.create.length;++e)a.create[e](Uo,t);i=t.data.hook,o(i)&&(o(i.create)&&i.create(Uo,t),o(i.insert)&&e.push(t))}function g(t){let e;if(o(e=t.fnScopeId))u.setStyleScope(t.elm,e);else{let n=t;for(;n;)o(e=n.context)&&o(e=e.$options._scopeId)&&u.setStyleScope(t.elm,e),n=n.parent}o(e=dn)&&e!==t.context&&e!==t.fnContext&&o(e=e.$options._scopeId)&&u.setStyleScope(t.elm,e)}function b(t,e,n,o,r,s){for(;o<=r;++o)d(n[o],s,t,e,!1,n,o)}function $(t){let e,n;const r=t.data;if(o(r))for(o(e=r.hook)&&o(e=e.destroy)&&e(t),e=0;e<a.destroy.length;++e)a.destroy[e](t);if(o(e=t.children))for(n=0;n<t.children.length;++n)$(t.children[n])}function w(t,e,n){for(;e<=n;++e){const n=t[e];o(n)&&(o(n.tag)?(C(n),$(n)):f(n.elm))}}function C(t,e){if(o(e)||o(t.data)){let n;const r=a.remove.length+1;for(o(e)?e.listeners+=r:e=function(t,e){function n(){0==--n.listeners&&f(t)}return n.listeners=e,n}(t.elm,r),o(n=t.componentInstance)&&o(n=n._vnode)&&o(n.data)&&C(n,e),n=0;n<a.remove.length;++n)a.remove[n](t,e);o(n=t.data.hook)&&o(n=n.remove)?n(t,e):e()}else f(t.elm)}function x(t,e,n,r){for(let s=n;s<r;s++){const n=e[s];if(o(n)&&Vo(t,n))return s}}function k(t,e,s,i,c,l){if(t===e)return;o(e.elm)&&o(i)&&(e=i[c]=lt(e));const f=e.elm=t.elm;if(r(t.isAsyncPlaceholder))return void(o(e.asyncFactory.resolved)?A(t.elm,e,s):e.isAsyncPlaceholder=!0);if(r(e.isStatic)&&r(t.isStatic)&&e.key===t.key&&(r(e.isCloned)||r(e.isOnce)))return void(e.componentInstance=t.componentInstance);let p;const h=e.data;o(h)&&o(p=h.hook)&&o(p=p.prepatch)&&p(t,e);const m=t.children,_=e.children;if(o(h)&&v(e)){for(p=0;p<a.update.length;++p)a.update[p](t,e);o(p=h.hook)&&o(p=p.update)&&p(t,e)}n(e.text)?o(m)&&o(_)?m!==_&&function(t,e,r,s,i){let c,a,l,f,p=0,h=0,m=e.length-1,_=e[0],v=e[m],y=r.length-1,g=r[0],$=r[y];const C=!i;for(;p<=m&&h<=y;)n(_)?_=e[++p]:n(v)?v=e[--m]:Vo(_,g)?(k(_,g,s,r,h),_=e[++p],g=r[++h]):Vo(v,$)?(k(v,$,s,r,y),v=e[--m],$=r[--y]):Vo(_,$)?(k(_,$,s,r,y),C&&u.insertBefore(t,_.elm,u.nextSibling(v.elm)),_=e[++p],$=r[--y]):Vo(v,g)?(k(v,g,s,r,h),C&&u.insertBefore(t,v.elm,_.elm),v=e[--m],g=r[++h]):(n(c)&&(c=zo(e,p,m)),a=o(g.key)?c[g.key]:x(g,e,p,m),n(a)?d(g,s,t,_.elm,!1,r,h):(l=e[a],Vo(l,g)?(k(l,g,s,r,h),e[a]=void 0,C&&u.insertBefore(t,l.elm,_.elm)):d(g,s,t,_.elm,!1,r,h)),g=r[++h]);p>m?(f=n(r[y+1])?null:r[y+1].elm,b(t,f,r,h,y,s)):h>y&&w(e,p,m)}(f,m,_,s,l):o(_)?(o(t.text)&&u.setTextContent(f,""),b(f,null,_,0,_.length-1,s)):o(m)?w(m,0,m.length-1):o(t.text)&&u.setTextContent(f,""):t.text!==e.text&&u.setTextContent(f,e.text),o(h)&&o(p=h.hook)&&o(p=p.postpatch)&&p(t,e)}function O(t,e,n){if(r(n)&&o(t.parent))t.parent.data.pendingInsert=e;else for(let t=0;t<e.length;++t)e[t].data.hook.insert(e[t])}const S=h("attrs,class,staticClass,staticStyle,key");function A(t,e,n,s){let i;const{tag:c,data:a,children:l}=e;if(s=s||a&&a.pre,e.elm=t,r(e.isComment)&&o(e.asyncFactory))return e.isAsyncPlaceholder=!0,!0;if(o(a)&&(o(i=a.hook)&&o(i=i.init)&&i(e,!0),o(i=e.componentInstance)))return p(e,n),!0;if(o(c)){if(o(l))if(t.hasChildNodes())if(o(i=a)&&o(i=i.domProps)&&o(i=i.innerHTML)){if(i!==t.innerHTML)return!1}else{let e=!0,o=t.firstChild;for(let t=0;t<l.length;t++){if(!o||!A(o,l[t],n,s)){e=!1;break}o=o.nextSibling}if(!e||o)return!1}else _(e,l,n);if(o(a)){let t=!1;for(const o in a)if(!S(o)){t=!0,y(e,n);break}!t&&a.class&&nn(a.class)}}else t.data!==e.text&&(t.data=e.text);return!0}return function(t,e,s,i){if(n(e))return void(o(t)&&$(t));let c=!1;const l=[];if(n(t))c=!0,d(e,l);else{const n=o(t.nodeType);if(!n&&Vo(t,e))k(t,e,l,null,null,i);else{if(n){if(1===t.nodeType&&t.hasAttribute("data-server-rendered")&&(t.removeAttribute("data-server-rendered"),s=!0),r(s)&&A(t,e,l))return O(e,l,!0),t;f=t,t=new it(u.tagName(f).toLowerCase(),{},[],void 0,f)}const i=t.elm,c=u.parentNode(i);if(d(e,l,i._leaveCb?null:c,u.nextSibling(i)),o(e.parent)){let t=e.parent;const n=v(e);for(;t;){for(let e=0;e<a.destroy.length;++e)a.destroy[e](t);if(t.elm=e.elm,n){for(let e=0;e<a.create.length;++e)a.create[e](Uo,t);const e=t.data.hook.insert;if(e.merged)for(let t=1;t<e.fns.length;t++)e.fns[t]()}else Lo(t);t=t.parent}}o(c)?w([t],0,0):o(t.tag)&&$(t)}}var f;return O(e,l,c),e.elm}}({nodeOps:Mo,modules:[tr,nr,lr,pr,xr,z?{create:Gr,activate:Gr,remove(t,e){!0!==t.data.show?Wr(t,e):e()}}:{}].concat(Jo)});K&&document.addEventListener("selectionchange",(()=>{const t=document.activeElement;t&&t.vmodel&&os(t,"input")}));const Jr={inserted(t,e,n,o){"select"===n.tag?(o.elm&&!o.elm._vOptions?Zt(n,"postpatch",(()=>{Jr.componentUpdated(t,e,n)})):Xr(t,e,n.context),t._vOptions=[].map.call(t.options,ts)):("textarea"===n.tag||No(t.type))&&(t._vModifiers=e.modifiers,e.modifiers.lazy||(t.addEventListener("compositionstart",es),t.addEventListener("compositionend",ns),t.addEventListener("change",ns),K&&(t.vmodel=!0)))},componentUpdated(t,e,n){if("select"===n.tag){Xr(t,e,n.context);const o=t._vOptions,r=t._vOptions=[].map.call(t.options,ts);if(r.some(((t,e)=>!P(t,o[e])))){(t.multiple?e.value.some((t=>Yr(t,r))):e.value!==e.oldValue&&Yr(e.value,r))&&os(t,"change")}}}};function Xr(t,e,n){Qr(t,e),(W||q)&&setTimeout((()=>{Qr(t,e)}),0)}function Qr(t,e,n){const o=e.value,r=t.multiple;if(r&&!Array.isArray(o))return;let s,i;for(let e=0,n=t.options.length;e<n;e++)if(i=t.options[e],r)s=I(o,ts(i))>-1,i.selected!==s&&(i.selected=s);else if(P(ts(i),o))return void(t.selectedIndex!==e&&(t.selectedIndex=e));r||(t.selectedIndex=-1)}function Yr(t,e){return e.every((e=>!P(e,t)))}function ts(t){return"_value"in t?t._value:t.value}function es(t){t.target.composing=!0}function ns(t){t.target.composing&&(t.target.composing=!1,os(t.target,"input"))}function os(t,e){const n=document.createEvent("HTMLEvents");n.initEvent(e,!0,!0),t.dispatchEvent(n)}function rs(t){return!t.componentInstance||t.data&&t.data.transition?t:rs(t.componentInstance._vnode)}var ss={bind(t,{value:e},n){const o=(n=rs(n)).data&&n.data.transition,r=t.__vOriginalDisplay="none"===t.style.display?"":t.style.display;e&&o?(n.data.show=!0,Hr(n,(()=>{t.style.display=r}))):t.style.display=e?r:"none"},update(t,{value:e,oldValue:n},o){if(!e==!n)return;(o=rs(o)).data&&o.data.transition?(o.data.show=!0,e?Hr(o,(()=>{t.style.display=t.__vOriginalDisplay})):Wr(o,(()=>{t.style.display="none"}))):t.style.display=e?t.__vOriginalDisplay:"none"},unbind(t,e,n,o,r){r||(t.style.display=t.__vOriginalDisplay)}},is={model:Jr,show:ss};const cs={name:String,appear:Boolean,css:Boolean,mode:String,type:String,enterClass:String,leaveClass:String,enterToClass:String,leaveToClass:String,enterActiveClass:String,leaveActiveClass:String,appearClass:String,appearActiveClass:String,appearToClass:String,duration:[Number,String,Object]};function as(t){const e=t&&t.componentOptions;return e&&e.Ctor.options.abstract?as(Ae(e.children)):t}function ls(t){const e={},n=t.$options;for(const o in n.propsData)e[o]=t[o];const o=n._parentListeners;for(const t in o)e[$(t)]=o[t];return e}function us(t,e){if(/\d-keep-alive$/.test(e.tag))return t("keep-alive",{props:e.componentOptions.propsData})}const fs=t=>t.tag||ve(t),ds=t=>"show"===t.name;var ps={name:"transition",props:cs,abstract:!0,render(t){let e=this.$slots.default;if(!e)return;if(e=e.filter(fs),!e.length)return;const n=this.mode,o=e[0];if(function(t){for(;t=t.parent;)if(t.data.transition)return!0}(this.$vnode))return o;const r=as(o);if(!r)return o;if(this._leaving)return us(t,o);const i=`__transition-${this._uid}-`;r.key=null==r.key?r.isComment?i+"comment":i+r.tag:s(r.key)?0===String(r.key).indexOf(i)?r.key:i+r.key:r.key;const c=(r.data||(r.data={})).transition=ls(this),a=this._vnode,l=as(a);if(r.data.directives&&r.data.directives.some(ds)&&(r.data.show=!0),l&&l.data&&!function(t,e){return e.key===t.key&&e.tag===t.tag}(r,l)&&!ve(l)&&(!l.componentInstance||!l.componentInstance._vnode.isComment)){const e=l.data.transition=S({},c);if("out-in"===n)return this._leaving=!0,Zt(e,"afterLeave",(()=>{this._leaving=!1,this.$forceUpdate()})),us(t,o);if("in-out"===n){if(ve(r))return a;let t;const n=()=>{t()};Zt(c,"afterEnter",n),Zt(c,"enterCancelled",n),Zt(e,"delayLeave",(e=>{t=e}))}}return o}};const hs=S({tag:String,moveClass:String},cs);delete hs.mode;var ms={props:hs,beforeMount(){const t=this._update;this._update=(e,n)=>{const o=pn(this);this.__patch__(this._vnode,this.kept,!1,!0),this._vnode=this.kept,o(),t.call(this,e,n)}},render(t){const e=this.tag||this.$vnode.data.tag||"span",n=Object.create(null),o=this.prevChildren=this.children,r=this.$slots.default||[],s=this.children=[],i=ls(this);for(let t=0;t<r.length;t++){const e=r[t];e.tag&&null!=e.key&&0!==String(e.key).indexOf("__vlist")&&(s.push(e),n[e.key]=e,(e.data||(e.data={})).transition=i)}if(o){const r=[],s=[];for(let t=0;t<o.length;t++){const e=o[t];e.data.transition=i,e.data.pos=e.elm.getBoundingClientRect(),n[e.key]?r.push(e):s.push(e)}this.kept=t(e,null,r),this.removed=s}return t(e,null,s)},updated(){const t=this.prevChildren,e=this.moveClass||(this.name||"v")+"-move";t.length&&this.hasMove(t[0].elm,e)&&(t.forEach(_s),t.forEach(vs),t.forEach(ys),this._reflow=document.body.offsetHeight,t.forEach((t=>{if(t.data.moved){const n=t.elm,o=n.style;Rr(n,e),o.transform=o.WebkitTransform=o.transitionDuration="",n.addEventListener(Pr,n._moveCb=function t(o){o&&o.target!==n||o&&!/transform$/.test(o.propertyName)||(n.removeEventListener(Pr,t),n._moveCb=null,Lr(n,e))})}})))},methods:{hasMove(t,e){if(!jr)return!1;if(this._hasMove)return this._hasMove;const n=t.cloneNode();t._transitionClasses&&t._transitionClasses.forEach((t=>{Sr(n,t)})),Or(n,e),n.style.display="none",this.$el.appendChild(n);const o=Br(n);return this.$el.removeChild(n),this._hasMove=o.hasTransform}}};function _s(t){t.elm._moveCb&&t.elm._moveCb(),t.elm._enterCb&&t.elm._enterCb()}function vs(t){t.data.newPos=t.elm.getBoundingClientRect()}function ys(t){const e=t.data.pos,n=t.data.newPos,o=e.left-n.left,r=e.top-n.top;if(o||r){t.data.moved=!0;const e=t.elm.style;e.transform=e.WebkitTransform=`translate(${o}px,${r}px)`,e.transitionDuration="0s"}}var gs={Transition:ps,TransitionGroup:ms};ao.config.mustUseProp=(t,e,n)=>"value"===n&&yo(t)&&"button"!==e||"selected"===n&&"option"===t||"checked"===n&&"input"===t||"muted"===n&&"video"===t,ao.config.isReservedTag=Io,ao.config.isReservedAttr=vo,ao.config.getTagNamespace=function(t){return Po(t)?"svg":"math"===t?"math":void 0},ao.config.isUnknownElement=function(t){if(!z)return!0;if(Io(t))return!1;if(t=t.toLowerCase(),null!=Do[t])return Do[t];const e=document.createElement(t);return t.indexOf("-")>-1?Do[t]=e.constructor===window.HTMLUnknownElement||e.constructor===window.HTMLElement:Do[t]=/HTMLUnknownElement/.test(e.toString())},S(ao.options.directives,is),S(ao.options.components,gs),ao.prototype.__patch__=z?Zr:T,ao.prototype.$mount=function(t,e){return function(t,e,n){let o;t.$el=e,t.$options.render||(t.$options.render=ct),vn(t,"beforeMount"),o=()=>{t._update(t._render(),n)},new cn(t,o,T,{before(){t._isMounted&&!t._isDestroyed&&vn(t,"beforeUpdate")}},!0),n=!1;const r=t._preWatchers;if(r)for(let t=0;t<r.length;t++)r[t].run();return null==t.$vnode&&(t._isMounted=!0,vn(t,"mounted")),t}(this,t=t&&z?function(t){if("string"==typeof t){return document.querySelector(t)||document.createElement("div")}return t}(t):void 0,e)},z&&setTimeout((()=>{L.devtools&&tt&&tt.emit("init",ao)}),0),S(ao,tn),module.exports=ao;
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("timers").setImmediate)
-},{"timers":48}],54:[function(require,module,exports){
+},{"timers":80}],86:[function(require,module,exports){
 var inserted = exports.cache = {}
 
 function noop () {}

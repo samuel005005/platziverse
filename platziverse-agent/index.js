@@ -53,7 +53,7 @@ class PlatziverseAgent extends EventEmmiter {
 
         this.emit('connected', this._agentId)
 
-        this._timer = setInterval(async () => {
+        this._timer = setInterval(async () => { 
           if (this._metrics.size > 0) {
             const message = {
               agent: {

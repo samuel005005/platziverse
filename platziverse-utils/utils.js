@@ -58,10 +58,28 @@ function selectKeys(obj, keys) {
     }
   }
 
+  function request(endpoint, apiToken) {
+    const request = {
+      get: (apiUrl) => {
+        const url = endpoint.concat(apiUrl)
+        const options = {
+          method: 'GET',
+          url,
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+          },
+          json: true,
+        }
+        return options
+      },
+    }
+    return request
+  }
 module.exports = {
   parsePayload,
   extend,
   selectAttributes,
   bodyError,
-  pipe
+  pipe,
+  request
 }

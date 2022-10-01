@@ -63,7 +63,7 @@ api.get('/metrics/:type/:uuid', async (req, res, next) => {
 
     try {
         result = await axios(options)
-    } catch (error) {
+    } catch (e) {
         return next(new Error(e.error.error))
     }
     res.send(result.data)    
