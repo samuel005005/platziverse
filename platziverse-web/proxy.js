@@ -6,7 +6,32 @@ const { endpoint, apiToken } = require('./config')
 
 const api = express.Router()
 
+
+api.get('/agent/:uuid', async (req, res, next) => {
+
+    const { uuid } = req.params
+    const options = {
+        method: 'GET',
+        url: `${endpoint}/api/agent/${uuid}`,
+        headers: {
+            'Authorization': `Bearer ${apiToken}`
+        },
+        json:true
+    }
+
+    let result
+
+    try {
+        result = await axios(options)
+    } catch (e) {
+        return next(new Error(e.response.data.error))
+    }
+
+    res.send(result.data)
+})
+
 api.get('/agents', async (req, res, next) => {
+  
     const options = {
         method: 'GET',
         url: `${endpoint}/api/agents`,
@@ -20,8 +45,8 @@ api.get('/agents', async (req, res, next) => {
 
     try {
         result = await axios(options)
-    } catch (error) {
-        return next(error)
+    } catch (e) {
+        return next(new Error(e.response.data.error))
     }
 
     res.send(result.data)
@@ -42,8 +67,8 @@ api.get('/metrics/:uuid', async (req, res, next) => {
 
     try {
         result = await axios(options)
-    } catch (error) {
-        return next(new Error(e.error.error))
+    } catch (e) {
+        return next(new Error(e.response.data.error))
     }
     res.send(result.data)    
 })
@@ -64,7 +89,7 @@ api.get('/metrics/:type/:uuid', async (req, res, next) => {
     try {
         result = await axios(options)
     } catch (e) {
-        return next(new Error(e.error.error))
+        return next(new Error(e.response.data.error))
     }
     res.send(result.data)    
 })

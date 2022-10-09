@@ -27,10 +27,6 @@ app.use('/', proxy)
 io.on('connect', socket => {
   debug(`Connected ${socket.id}`)
 
-  // agent.on('agent/disconnected', payload => {
-  //   socket.emit('agent/disconnected', payload)
-  // })
-
   pipe(agent, socket)
 })
 

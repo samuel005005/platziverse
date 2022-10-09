@@ -38,7 +38,7 @@ api.get('/agents', auth(config.auth), guard.check(['agent:read']), async (req, r
 
   let agents = []
   try {
-    console.log(auth.admin)
+ 
     if (auth.admin) {
       agents = await Agent.findConnected()
     } else {
@@ -51,7 +51,8 @@ api.get('/agents', auth(config.auth), guard.check(['agent:read']), async (req, r
   res.json(agents)
 })
 
-api.get('/agent/:uuid', auth(config.auth), guard.check(['agent:read']), async (req, res, next) => {
+api.get('/agent/:uuid', auth(config.auth), guard.check(['agent:read']) , async (req, res, next) => {
+
   const { auth, params } = req
 
   if (!auth || !auth.username) {

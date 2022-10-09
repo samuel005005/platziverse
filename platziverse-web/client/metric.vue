@@ -50,6 +50,7 @@ module.exports = {
 
   methods: {
    async initialize() {
+
       const { uuid, type } = this
       this.color = randomMaterialColor.getColor()
       const options = {
@@ -62,14 +63,13 @@ module.exports = {
 
       try {
         result = await axios(options)
-      } catch (error) {
-        this.error = error.error.error
+      } catch (e) {
+        this.error = e.response.data.error
         return
       }
    
       const labels = []
       const data = []
-      console.log(result)
       if( Array.isArray(result.data) ){
         result.data.forEach(m => {
           

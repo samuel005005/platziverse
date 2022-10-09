@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "NODE_ENV=production node server.js",
-    "start-dev": "cross-env DEBUG=platziverse:* node server/",
+    "start-dev": "cross-env DEBUG=platziverse:* nodemon server/",
     "lint": "standard",
     "lint-fix": "standard --fix",
     "prestart": "npm run build",
