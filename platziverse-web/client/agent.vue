@@ -100,7 +100,6 @@ module.exports = {
 
   methods: {
     async initialize() {
-      console.log('initialize')
       const { uuid } = this
 
       const options = {
@@ -150,7 +149,6 @@ module.exports = {
         if (payload.agent.uuid === uuid) {
           this.connected = false
         }
-
       })
     },
     toggleMetrics() {

@@ -16,7 +16,7 @@ api.get('/agent/:uuid', async (req, res, next) => {
         headers: {
             'Authorization': `Bearer ${apiToken}`
         },
-        json:true
+        json: true
     }
 
     let result
@@ -31,14 +31,14 @@ api.get('/agent/:uuid', async (req, res, next) => {
 })
 
 api.get('/agents', async (req, res, next) => {
-  
+
     const options = {
         method: 'GET',
         url: `${endpoint}/api/agents`,
         headers: {
             'Authorization': `Bearer ${apiToken}`
         },
-        json:true
+        json: true
     }
 
     let result
@@ -60,7 +60,7 @@ api.get('/metrics/:uuid', async (req, res, next) => {
         headers: {
             'Authorization': `Bearer ${apiToken}`
         },
-        json:true
+        json: true
     }
 
     let result
@@ -70,7 +70,7 @@ api.get('/metrics/:uuid', async (req, res, next) => {
     } catch (e) {
         return next(new Error(e.response.data.error))
     }
-    res.send(result.data)    
+    res.send(result.data)
 })
 
 api.get('/metrics/:type/:uuid', async (req, res, next) => {
@@ -81,7 +81,7 @@ api.get('/metrics/:type/:uuid', async (req, res, next) => {
         headers: {
             'Authorization': `Bearer ${apiToken}`
         },
-        json:true
+        json: true
     }
 
     let result
@@ -92,7 +92,7 @@ api.get('/metrics/:type/:uuid', async (req, res, next) => {
         console.log(e)
         return next(new Error(e.response))
     }
-    res.send(result.data)    
+    res.send(result.data)
 })
 
 module.exports = api

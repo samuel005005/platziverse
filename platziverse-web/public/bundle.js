@@ -26,7 +26,6 @@ module.exports = {
 
   methods: {
     initialize: async function initialize() {
-      console.log('initialize');
       var uuid = this.uuid;
 
 
@@ -78,10 +77,7 @@ module.exports = {
 
       socket.on('agent/disconnected', function (payload) {
         _this.connected = false;
-        console.log(payload);
-        console.log('payload.uuid ' + payload.agent.uuid + '  --> uuid ' + uuid);
         if (payload.agent.uuid === uuid) {
-          console.log('ENTRO');
           _this.connected = false;
         }
       });
@@ -132,6 +128,7 @@ var __vueify_style_dispose__ = require("vueify/lib/insert-css").insert("body {\r
 ;(function(){
 'use strict';
 
+var axios = require('axios').default;
 var io = require('socket.io-client');
 var socket = io();
 
@@ -149,14 +146,41 @@ module.exports = {
 
 
   methods: {
-    initialize: function initialize() {}
+    initialize: async function initialize() {
+      var _this = this;
+
+      var options = {
+        method: 'GET',
+        url: 'http://localhost:8080/agents',
+        json: true
+      };
+      var result = void 0;
+      try {
+        result = await axios(options);
+      } catch (e) {
+        this.error = e.response.data.error;
+        return;
+      }
+
+      this.agents = result.data;
+      socket.on('agent/connected', function (payload) {
+        var uuid = payload.agent.uuid;
+
+        var existing = _this.agents.find(function (a) {
+          return a.uuid === uuid;
+        });
+        if (!existing) {
+          _this.agents.push(payload.agent);
+        }
+      });
+    }
   }
 };
 })()
 if (module.exports.__esModule) module.exports = module.exports.default
 var __vue__options__ = (typeof module.exports === "function"? module.exports.options: module.exports)
 if (__vue__options__.functional) {console.error("[vueify] functional components are not supported and should be defined in plain js files using render functions.")}
-__vue__options__.render = function render () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('agent',{attrs:{"uuid":"15f17410-c634-45f2-bad6-654f167ba773","socket":_vm.socket}}),_vm._v(" "),_c('metric',{attrs:{"type":"callbackMetric","uuid":"15f17410-c634-45f2-bad6-654f167ba773","socket":_vm.socket}}),_vm._v(" "),_vm._l((_vm.agents),function(agent){return _c('agent',{key:agent.uuid,attrs:{"uuid":agent.uuid}})}),_vm._v(" "),(_vm.error)?_c('p',[_vm._v(_vm._s(_vm.error))]):_vm._e()],2)}
+__vue__options__.render = function render () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_vm._l((_vm.agents),function(agent){return _c('agent',{key:agent.uuid,attrs:{"uuid":agent.uuid,"socket":_vm.socket}})}),_vm._v(" "),(_vm.error)?_c('p',[_vm._v(_vm._s(_vm.error))]):_vm._e()],2)}
 __vue__options__.staticRenderFns = []
 if (module.hot) {(function () {  var hotAPI = require("vue-hot-reload-api")
   hotAPI.install(require("vue"), true)
@@ -169,7 +193,7 @@ if (module.hot) {(function () {  var hotAPI = require("vue-hot-reload-api")
     hotAPI.reload("data-v-261524ca", __vue__options__)
   }
 })()}
-},{"socket.io-client":72,"vue":84,"vue-hot-reload-api":82,"vueify/lib/insert-css":86}],4:[function(require,module,exports){
+},{"axios":7,"socket.io-client":72,"vue":84,"vue-hot-reload-api":82,"vueify/lib/insert-css":86}],4:[function(require,module,exports){
 'use strict';
 
 var _require = require('vue-chartjs'),

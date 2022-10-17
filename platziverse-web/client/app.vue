@@ -1,8 +1,8 @@
 <template>
   <div>
-    <agent uuid="15f17410-c634-45f2-bad6-654f167ba773" :socket="socket"></agent>
-    <metric type="callbackMetric" uuid="15f17410-c634-45f2-bad6-654f167ba773" :socket="socket"></metric>
-    <agent v-for="agent in agents" :uuid="agent.uuid" :key="agent.uuid">
+    <!-- <agent uuid="15f17410-c634-45f2-bad6-654f167ba773" :socket="socket"></agent>
+    <metric type="callbackMetric" uuid="15f17410-c634-45f2-bad6-654f167ba773" :socket="socket"></metric> -->
+    <agent v-for="agent in agents" :uuid="agent.uuid" :key="agent.uuid" :socket="socket">
     </agent>
     <p v-if="error">{{error}}</p>
   </div>
@@ -17,8 +17,10 @@ body {
 </style>
 
 <script>
+const axios = require('axios').default
 const io = require('socket.io-client')
 const socket = io()
+
 
 module.exports = {
   data() {
@@ -34,7 +36,28 @@ module.exports = {
   },
 
   methods: {
-    initialize() {
+    async initialize() {
+      const options = {
+        method: 'GET',
+        url: `http://localhost:8080/agents`,
+        json: true
+      }
+      let result
+      try {
+        result = await axios(options);
+      } catch (e) {
+        this.error = e.response.data.error
+        return
+      }
+
+      this.agents = result.data
+      socket.on('agent/connected', payload => {
+        const { uuid } = payload.agent
+        const existing = this.agents.find(a => a.uuid === uuid)
+        if (!existing) {
+          this.agents.push(payload.agent)
+        }
+      })
     }
   }
 }
