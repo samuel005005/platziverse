@@ -22,6 +22,7 @@ module.exports = async function (config) {
   const AgentModel = setupAgentModel(config)
   const MetricModel = setupMetricModel(config)
 
+
   AgentModel.hasMany(MetricModel)
   MetricModel.belongsTo(AgentModel)
 

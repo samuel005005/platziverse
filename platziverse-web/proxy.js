@@ -24,7 +24,7 @@ api.get('/agent/:uuid', async (req, res, next) => {
     try {
         result = await axios(options)
     } catch (e) {
-        return next(new Error(e.response.data.error))
+        return next(new Error(e.response))
     }
 
     res.send(result.data)
@@ -89,7 +89,8 @@ api.get('/metrics/:type/:uuid', async (req, res, next) => {
     try {
         result = await axios(options)
     } catch (e) {
-        return next(new Error(e.response.data.error))
+        console.log(e)
+        return next(new Error(e.response))
     }
     res.send(result.data)    
 })

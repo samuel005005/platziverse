@@ -2,7 +2,7 @@ function configuration (setup, dialect, logging) {
   const config = {
     db: {
       database: process.env.DB_NAME || 'platziverse',
-      username: process.env.DB_USER || 'platzi',
+      username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASS || 'swagga',
       host: process.env.DB_HOST || 'localhost',
       dialect,

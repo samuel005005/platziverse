@@ -20,7 +20,7 @@ const options = {
 }
 
 class PlatziverseAgent extends EventEmmiter {
-  constructor (opts) {
+  constructor(opts) {
     super()
     this._options = defaults(opts, options)
     this._started = false
@@ -30,15 +30,15 @@ class PlatziverseAgent extends EventEmmiter {
     this._metrics = new Map()
   }
 
-  addMetric (type, func) {
+  addMetric(type, func) {
     this._metrics.set(type, func)
   }
 
-  removeMetric (type) {
+  removeMetric(type) {
     this._metrics.delete(type)
   }
 
-  connect () {
+  connect() {
     if (!this._started) {
       const opts = this._options
 
@@ -53,7 +53,7 @@ class PlatziverseAgent extends EventEmmiter {
 
         this.emit('connected', this._agentId)
 
-        this._timer = setInterval(async () => { 
+        this._timer = setInterval(async () => {
           if (this._metrics.size > 0) {
             const message = {
               agent: {
@@ -97,6 +97,7 @@ class PlatziverseAgent extends EventEmmiter {
             broadcast = payload && payload.agent && payload.agent.uuid !== this._agentId
             break
         }
+        // debug(`topic ${topic} broadcast ${broadcast}`)
         if (broadcast) {
           this.emit(topic, payload)
         }
@@ -106,7 +107,7 @@ class PlatziverseAgent extends EventEmmiter {
     }
   }
 
-  disconnect () {
+  disconnect() {
     if (this._started) {
       clearInterval(this._timer)
       this._started = false

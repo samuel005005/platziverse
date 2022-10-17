@@ -9,15 +9,15 @@ const agent = new PlatziverseAgent({
 })
 
 
-agent.addMetric('rss', function getRss () {
+agent.addMetric('rss', function getRss() {
   return process.memoryUsage().rss
 })
 
-agent.addMetric('getRandomPromise', function getRandomPromise () {
+agent.addMetric('getRandomPromise', function getRandomPromise() {
   return Promise.resolve(Math.random())
 })
 
-agent.addMetric('callbackMetric', function getRandomCallback (callback) {
+agent.addMetric('callbackMetric', function getRandomCallback(callback) {
   setTimeout(() => {
     callback(null, Math.random())
   }, 1000)
@@ -25,18 +25,18 @@ agent.addMetric('callbackMetric', function getRandomCallback (callback) {
 
 agent.connect()
 
- // This agent only
- agent.on('connected', handle)
- agent.on('disconnected', handle)
- agent.on('message', handle)
+// This agent only
+agent.on('connected', handle)
+agent.on('disconnected', handle)
+agent.on('message', handle)
 
- // Other agent sending me (this not me , broadcast)
- agent.on('agent/connect', handle)
- agent.on('agent/disconnected', handle)
- agent.on('agent/message', handle)
+// Other agent sending me (this not me , broadcast)
+agent.on('agent/connect', handle)
+agent.on('agent/disconnected', handle)
+agent.on('agent/message', handle)
 
- function handle( payload ){
-    console.log(payload)
- }
+function handle(payload) {
+  console.log(payload)
+}
 
-//  setTimeout(() => agent.disconnect(), 10000)
+// setTimeout(() => agent.disconnect(), 100000)

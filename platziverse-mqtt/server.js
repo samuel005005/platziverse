@@ -3,9 +3,9 @@
 const debug = require('debug')('platziverse:mqtt:server')
 const redis = require('redis')
 const chalk = require('chalk')
-const {  handle, configuration, utils  } = require('platziverse-utils')
+const { handle, configuration, utils } = require('platziverse-utils')
 const { parsePayload } = utils
-const  { handleFatalError , handleError} = handle
+const { handleFatalError, handleError } = handle
 const aedes = require('aedes')()
 const server = require('net').createServer(aedes.handle)
 
@@ -38,6 +38,7 @@ aedes.on('clientDisconnect', async client => {
   debug(`Client disconnected ${client.id}`)
   const agent = clients.get(client.id)
   if (agent) {
+
     agent.connected = false
 
     try {
@@ -51,7 +52,9 @@ aedes.on('clientDisconnect', async client => {
     aedes.publish({
       topic: 'agent/disconnected',
       payload: JSON.stringify({
-        uuid: agent.uuid
+        agent: {
+          uuid: agent.uuid
+        }
       })
     })
 
@@ -106,19 +109,19 @@ aedes.on('publish', async (packet, client) => {
         /// Store Metrics mode asynconos
         await Promise.allSettled(
           payload.metrics
-          .map(
-            async (metric) =>
-              Metric.create(agent.uuid, metric)
-          )).then(response => {
-            for (const res of response) {
-              const { status, value } = res
-              if (status === 'fulfilled') {
-                debug(`Metric ${value.id} saved on agent ${agent.uuid}`)
-              } else if (status === 'rejected') {
-                handleError(value)
+            .map(
+              async (metric) =>
+                Metric.create(agent.uuid, metric)
+            )).then(response => {
+              for (const res of response) {
+                const { status, value } = res
+                if (status === 'fulfilled') {
+                  debug(`Metric ${value.id} saved on agent ${agent.uuid}`)
+                } else if (status === 'rejected') {
+                  handleError(value)
+                }
               }
-            }
-          })
+            })
       }
       break
     default:

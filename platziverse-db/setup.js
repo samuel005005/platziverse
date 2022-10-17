@@ -32,7 +32,7 @@ async function setup () {
   const config = configuration(true, 'postgres', s => debug(s))
  
 
-  await db(config).catch(handleFatalError)
+  await db(config.db).catch(handleFatalError)
 
   console.log('Success!')
   process.exit(0)
