@@ -38,7 +38,6 @@ aedes.on('clientDisconnect', async client => {
   debug(`Client disconnected ${client.id}`)
   const agent = clients.get(client.id)
   if (agent) {
-
     agent.connected = false
 
     try {
@@ -113,15 +112,15 @@ aedes.on('publish', async (packet, client) => {
               async (metric) =>
                 Metric.create(agent.uuid, metric)
             )).then(response => {
-              for (const res of response) {
-                const { status, value } = res
-                if (status === 'fulfilled') {
-                  debug(`Metric ${value.id} saved on agent ${agent.uuid}`)
-                } else if (status === 'rejected') {
-                  handleError(value)
-                }
-              }
-            })
+          for (const res of response) {
+            const { status, value } = res
+            if (status === 'fulfilled') {
+              debug(`Metric ${value.id} saved on agent ${agent.uuid}`)
+            } else if (status === 'rejected') {
+              handleError(value)
+            }
+          }
+        })
       }
       break
     default:

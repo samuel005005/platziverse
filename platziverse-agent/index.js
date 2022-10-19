@@ -20,7 +20,7 @@ const options = {
 }
 
 class PlatziverseAgent extends EventEmmiter {
-  constructor(opts) {
+  constructor (opts) {
     super()
     this._options = defaults(opts, options)
     this._started = false
@@ -30,15 +30,15 @@ class PlatziverseAgent extends EventEmmiter {
     this._metrics = new Map()
   }
 
-  addMetric(type, func) {
+  addMetric (type, func) {
     this._metrics.set(type, func)
   }
 
-  removeMetric(type) {
+  removeMetric (type) {
     this._metrics.delete(type)
   }
 
-  connect() {
+  connect () {
     if (!this._started) {
       const opts = this._options
 
@@ -83,7 +83,6 @@ class PlatziverseAgent extends EventEmmiter {
             this._client.publish('agent/message', JSON.stringify(message))
             this.emit('message', message)
           }
-
         }, opts.interval)
       })
 
@@ -107,7 +106,7 @@ class PlatziverseAgent extends EventEmmiter {
     }
   }
 
-  disconnect() {
+  disconnect () {
     if (this._started) {
       clearInterval(this._timer)
       this._started = false

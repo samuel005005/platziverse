@@ -4,7 +4,7 @@ const test = require('ava')
 const sinon = require('sinon')
 const proxyquire = require('proxyquire')
 const { fixtures } = require('platziverse-utils')
-const { agentFixtures } = fixtures;
+const { agentFixtures } = fixtures
 
 const config = {
   logging: function () {}
