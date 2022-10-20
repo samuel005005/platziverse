@@ -3,7 +3,6 @@
 'use strict'
 
 /* eslint new-cap: "off" */
-/* eslint no-unused-vars: "off" */
 
 const blessed = require('blessed')
 const contrib = require('blessed-contrib')
@@ -64,6 +63,7 @@ agent.on('agent/message', payload => {
         agents.set(uuid, payload.agent)
         agentMetrics.set(uuid, {})
     }
+
 
     const metrics = agentMetrics.get(uuid)
 
