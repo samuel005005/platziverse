@@ -1,7 +1,8 @@
 <template>
     <div class="metric">
-        <h3 class="metric-type">{{ type }}</h3>
-        <LineChart />
+        <!-- <h3 class="metric-type">{{ type }}</h3> -->
+        <metrics-chart :type="type" v-bind:datacollection="datacollection" :options="{ responsive: true }">
+        </metrics-chart>
         <p v-if="error">{{error}}</p>
     </div>
 </template>
@@ -26,7 +27,7 @@ import axios from 'axios';
 import moment from 'moment';
 import { getColor } from 'random-material-color';
 import { serverHost } from '../../config';
-
+import MetricsChart from './Chart.vue';
 
 export default {
     data() {
@@ -40,6 +41,7 @@ export default {
     mounted() {
         this.initialize();
     },
+
     methods: {
         async initialize() {
             const { uuid, type } = this
@@ -74,9 +76,45 @@ export default {
                     label: type,
                     data
                 }]
-            };
+            }
+            this.startRealtime()
+        },
+        startRealtime() {
+            const { uuid, type, socket } = this;
+            socket.on('agent/message', payload => {
+
+                if (payload.agent.uuid === uuid) {
+
+                    const metrics = payload.metrics.find(m => m.type === type);
+                    // Copy current values
+                    const labels = this.datacollection.labels;
+                    const data = this.datacollection.datasets[0].data;
+
+                    // Remove firt element if length > 20
+                    const length = labels.length || data.length;
+                    if (length >= 20) {
+                        labels.shift();
+                        data.shift();
+                    }
+                    // add new  element 
+                    labels.push(moment(metrics.createdAt).format('HH:mm:ss'));
+                    data.push(metrics.value);
+
+                    this.datacollection = {
+                        labels,
+                        datasets: [{
+                            backgroundColor: this.color,
+                            label: type,
+                            data
+                        }]
+                    };
+                }
+            });
+        }, handleError(err) {
+            this.error = err.message;
         }
-    }
+    },
+    components: { MetricsChart },
 }
 </script> 
  

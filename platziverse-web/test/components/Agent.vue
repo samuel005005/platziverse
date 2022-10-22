@@ -120,7 +120,8 @@ export default {
             this.pid = agent.data.pid;
             this.loadMetrics();
 
-        }, async loadMetrics() {
+        },
+        async loadMetrics() {
             const { uuid } = this;
             const options = {
                 method: 'GET',
