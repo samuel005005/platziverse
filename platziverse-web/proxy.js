@@ -1,11 +1,10 @@
 'use strict'
 
-const express = require('express')
-const axios = require('axios').default;
-const { endpoint, apiToken } = require('./config')
+import express from 'express'
+import axios from 'axios'
+import { endpoint, apiToken } from './config'
 
 const api = express.Router()
-
 
 api.get('/agent/:uuid', async (req, res, next) => {
 
@@ -24,7 +23,7 @@ api.get('/agent/:uuid', async (req, res, next) => {
     try {
         result = await axios(options)
     } catch (e) {
-        return next(new Error(e.response))
+        return next(new Error(e))
     }
 
     res.send(result.data)
@@ -46,7 +45,8 @@ api.get('/agents', async (req, res, next) => {
     try {
         result = await axios(options)
     } catch (e) {
-        return next(new Error(e.response.data.error))
+
+        return next(new Error(e))
     }
 
     res.send(result.data)
@@ -89,8 +89,7 @@ api.get('/metrics/:type/:uuid', async (req, res, next) => {
     try {
         result = await axios(options)
     } catch (e) {
-        console.log(e)
-        return next(new Error(e.response))
+        return next(new Error(e))
     }
     res.send(result.data)
 })

@@ -1,12 +1,12 @@
 'use strict'
 
-const { Line, mixins } = require('vue-chartjs')
+import { Line, mixins } from 'vue-chartjs'
 const { reactiveProp } = mixins
 
-module.exports = Line.extend({
-  mixins: [ reactiveProp ],
-  props: [ 'options' ],
-  mounted () {
+export default Line.extend({
+  mixins: [reactiveProp],
+  props: ['options'],
+  mounted() {
     this.renderChart(this.chartData, this.options)
   }
 })

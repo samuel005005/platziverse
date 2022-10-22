@@ -17,48 +17,45 @@ body {
 </style>
 
 <script>
-const axios = require('axios').default
-const io = require('socket.io-client')
+import axios from 'axios'
+import io from 'socket.io-client'
 const socket = io()
+import { serverHost } from '../config'
 
 
-module.exports = {
-  data() {
-    return {
-      agents: [],
-      error: null,
-      socket
+export default function data() {
+  return {
+    agents: [],
+    error: null,
+    // socket
+  }
+}
+export function mounted() {
+  this.initialize()
+}
+export const methods = {
+  async initialize() {
+    const options = {
+      method: 'GET',
+      url: `${serverHost}/agents`,
+      json: true
     }
-  },
-
-  mounted() {
-    this.initialize()
-  },
-
-  methods: {
-    async initialize() {
-      const options = {
-        method: 'GET',
-        url: `http://localhost:8080/agents`,
-        json: true
-      }
-      let result
-      try {
-        result = await axios(options);
-      } catch (e) {
-        this.error = e.response.data.error
-        return
-      }
-
-      this.agents = result.data
-      socket.on('agent/connected', payload => {
-        const { uuid } = payload.agent
-        const existing = this.agents.find(a => a.uuid === uuid)
-        if (!existing) {
-          this.agents.push(payload.agent)
-        }
-      })
+    let result
+    try {
+      result = await axios(options)
+    } catch (e) {
+      this.error = e.response.data.error
+      return
     }
+
+    this.agents = result.data
+    socket.on('agent/connected', payload => {
+      const { uuid } = payload.agent
+      const existing = this.agents.find(a => a.uuid === uuid)
+      if (!existing) {
+        this.agents.push(payload.agent)
+      }
+    })
   }
 }
 </script>

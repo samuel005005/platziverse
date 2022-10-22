@@ -7,8 +7,8 @@
       <button v-on:click="toggleMetrics" class="button">Toggle Metrics</button>
       <div v-show="showMetrics">
         <h3 class="metrics-title">Metrics</h3>
-        <metric :uuid="uuid" :socket="socket" v-for="metric in metrics" v-bind:type="metric.type"
-          v-bind:key="metric.type"></metric>
+        <!-- <metric :uuid="uuid" :socket="socket" v-for="metric in metrics" v-bind:type="metric.type"
+          v-bind:key="metric.type"></metric> -->
       </div>
     </div>
     <p v-if="error">{{error}}</p>
@@ -77,83 +77,82 @@
 
 <script>
 
-const axios = require('axios').default;
+import axios from 'axios';
+import { serverHost } from '../config';
 
-module.exports = {
-  props: ['uuid', 'socket'],
+export const props = ['uuid', 'socket']
 
-  data() {
-    return {
-      name: null,
-      hostname: null,
-      connected: false,
-      pid: null,
-      showMetrics: false,
-      error: null,
-      metrics: []
-    }
-  },
-
-  mounted() {
-    this.initialize()
-  },
-
-  methods: {
-    async initialize() {
-      const { uuid } = this
-
-      const options = {
-        method: 'GET',
-        url: `http://localhost:8080/agent/${uuid}`,
-        json: true
-      }
-
-      let agent
-      try {
-        agent = await axios(options);
-      } catch (e) {
-        this.error = e.response.data.error
-        return
-      }
-      this.name = agent.data.name
-      this.hostname = agent.data.hostname
-      this.connected = agent.data.connected
-      this.pid = agent.data.pid
-      this.loadMetrics()
-
-    },
-    async loadMetrics() {
-      const { uuid } = this
-      const options = {
-        method: 'GET',
-        url: `http://localhost:8080/metrics/${uuid}`,
-        json: true
-      }
-
-      let metrics
-      try {
-        metrics = await axios(options);
-      } catch (e) {
-        this.error = e.response.data.error
-        return
-      }
-
-      this.metrics = metrics.data
-
-      this.startRealTime()
-    },
-    startRealTime() {
-      const { uuid, socket } = this
-      socket.on('agent/disconnected', payload => {
-        this.connected = false
-        if (payload.agent.uuid === uuid) {
-          this.connected = false
-        }
-      })
-    },
-    toggleMetrics() {
-      this.showMetrics = this.showMetrics ? false : true
-    }
-  }
+export default function data() {
+  return {
+    name: null,
+    hostname: null,
+    connected: false,
+    pid: null,
+    showMetrics: false,
+    error: null,
+    metrics: []
+  };
 }
+export function mounted() {
+  this.initialize();
+}
+export const methods = {
+
+  async initialize() {
+    console.log('Started')
+    const { uuid } = this;
+
+    const options = {
+      method: 'GET',
+      url: `${serverHost}/agent/${uuid}`,
+      json: true
+    };
+
+    let agent;
+    try {
+      agent = await axios(options);
+    } catch (e) {
+      this.error = e;
+      return;
+    }
+    this.name = agent.data.name;
+    this.hostname = agent.data.hostname;
+    this.connected = agent.data.connected;
+    this.pid = agent.data.pid;
+    this.loadMetrics();
+
+  },
+  async loadMetrics() {
+    const { uuid } = this;
+    const options = {
+      method: 'GET',
+      url: `${serverHost}/metrics/${uuid}`,
+      json: true
+    };
+
+    let metrics;
+    try {
+      metrics = await axios(options);
+    } catch (e) {
+      this.error = e.response.data.error;
+      return;
+    }
+
+    this.metrics = metrics.data;
+
+    this.startRealTime();
+  },
+  startRealTime() {
+    const { uuid, socket } = this;
+    socket.on('agent/disconnected', payload => {
+      this.connected = false;
+      if (payload.agent.uuid === uuid) {
+        this.connected = false;
+      }
+    });
+  },
+  toggleMetrics() {
+    this.showMetrics = this.showMetrics ? false : true;
+  }
+};
 </script>
