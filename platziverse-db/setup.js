@@ -7,14 +7,14 @@ const { configuration, handleFatalError } = require('platziverse-utils')
 const prompt = inquirer.createPromptModule()
 const argv = require('yargs').option(
   'force', {
-    alias: 'f',
-    type: 'boolean',
-    default: false,
-    description: 'Not question!  destroy database',
-    demandOption: false
-  }).argv
+  alias: 'f',
+  type: 'boolean',
+  default: false,
+  description: 'Not question!  destroy database',
+  demandOption: false
+}).argv
 
-async function setup () {
+async function setup() {
   if (!argv.force) {
     const answer = await prompt([
       {

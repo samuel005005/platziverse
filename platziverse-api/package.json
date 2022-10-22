@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "test": "cross-env DEBUG=platziverse:* nyc --reporter=lcov ava tests/ --verbose",
-    "start": "NODE_ENV=production node server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
     "start-dev": "cross-env DEBUG=platziverse:* nodemon server.js",
     "lint": "standard",
     "lint-fix": "standard --fix"

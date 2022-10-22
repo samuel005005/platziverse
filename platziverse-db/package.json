@@ -8,7 +8,7 @@
     "test": "cross-env DEBUG=platziverse:* nyc --reporter=lcov ava tests/ --verbose",
     "lint": "standard",
     "lint-fix": "standard --fix",
-    "setup": "cross-env NODE_ENV=production DEBUG=platziverse:* node setup.js"
+    "setup": "cross-env NODE_ENV=production DEBUG=platziverse:* node setup.js -f"
   },
   "repository": {
     "type": "git",
