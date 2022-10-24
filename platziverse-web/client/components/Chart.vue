@@ -16,6 +16,9 @@ export default {
     props: ['datacollection', 'type'],
 
     mounted() {
+        const { labels, datasets } = this.datacollection
+
+        console.log(datasets)
         this.chart = new Chart(this.$refs.metrictsChart, {
             type: 'line',
             data: {

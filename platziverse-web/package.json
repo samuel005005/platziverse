@@ -4,15 +4,15 @@
   "description": "A simple IoT Platform - Web Dashboard",
   "main": "server.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node server.js",
+    "start": "cross-env NODE_ENV=production node build/server",
     "start-dev": "cross-env DEBUG=platziverse:* nodemon --exec babel-node server",
     "lint": "standard",
     "lint-fix": "standard --fix",
-    "prestart": "npm run build",
+    "prestart": "npm run build && npm run build-node",
     "prestart-dev": "npm run build-dev",
-    "prestart:-ev:watch": "npm run build",
     "build-dev": "webpack --mode development",
-    "build": "cross-env NODE_ENV=production browserify -g envify -t babelify -t vueify -e client/app.js | terser -c -m -o public/bundle.js"
+    "build": "cross-env NODE_ENV=production webpack --mode production",
+    "build-node": "babel server.js proxy.js config.js -d build"
   },
   "repository": {
     "type": "git",
@@ -32,6 +32,7 @@
     "@babel/preset-env": "^7.19.4",
     "babel-loader": "^8.2.5",
     "css-loader": "^6.7.1",
+    "filemanager-webpack-plugin": "^7.0.0",
     "html-webpack-plugin": "^5.5.0",
     "nodemon": "^2.0.20",
     "standard": "^17.0.0",

@@ -1,8 +1,10 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const { VueLoaderPlugin } = require('vue-loader')
 const { DefinePlugin } = require('webpack')
+const FileManagerPlugin = require('filemanager-webpack-plugin');
+
 module.exports = {
-    entry: './test/index.js',
+    entry: './client/index.js',
     output: {
         path: __dirname + '/public',
         filename: 'bundle.js'
@@ -47,6 +49,15 @@ module.exports = {
         }),
         new HtmlWebpackPlugin({
             template: './public/index.html'
+        }),
+        new FileManagerPlugin({
+            events: {
+                onEnd: {
+                    copy: [
+                        { source: 'public', destination: './build/public' }
+                    ],
+                }
+            }
         })
     ],
     resolve: {
